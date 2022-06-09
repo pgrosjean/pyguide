@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
+import os
 from typing import List, Dict
 from argparse import ArgumentParser
 from datetime import datetime
 from sys import platform
-from os import listdir
 
 
 ####################
@@ -102,10 +102,12 @@ def get_hg_db(gene_list: List[str],
         The filtered dataframe of the database.
     """
     # Opening CRISPRi/a sgRNA database
+    file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path = os.path.join(file_path, '..', 'data')
     if ai_status == "i":
-        file = "../data/CRISPRi_v2.txt"
+        file = os.path.join(file_path, "CRISPRi_v2.txt")
     elif ai_status == 'a':
-        file = "../data/CRISPRa_v2.txt"
+        file = os.path.join(file_path, "CRISPRa_v2.txt")
     else:
         raise Exception("ai status must be either a or i")
     db_df = open_txt_database(file, header=False)  # Database DataFrame
@@ -130,7 +132,9 @@ def get_local_db(gene_list: List[str]) -> pd.DataFrame:
     kl_df : pd.DataFrame
         The local Kampmann Lab Database
     """
-    local_db_file = "../data/human_sgrnas.txt"  # Local Kampmann Lab Database
+    file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path = os.path.join(file_path, '..', 'data')
+    local_db_file = os.path.join(file_path, "human_sgrnas.txt") # Local Kampmann Lab Database
     kl_df = open_txt_database(local_db_file, header=True)
     # Adding gene column to local Kampmann lab database
     kl_df["gene"] = kl_df["Short Name"].apply(lambda x: x.split("_")[0])
@@ -409,7 +413,7 @@ def get_unique_filename(base_dir: str,
     unique_filename : str
         The unique filename for the directory.
     """
-    file_list = listdir(base_dir)
+    file_list = os.listdir(base_dir)
     c = 1
     fname_check = filename
     while fname_check in file_list:
