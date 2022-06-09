@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: |
           # install pyguide 
-          pip install -e ".[extra]"
+          pip install -e ".[dev]"
 
       # Running pytest
       - name: Test with pytest
