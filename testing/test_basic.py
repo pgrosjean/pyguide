@@ -1,6 +1,5 @@
 from pyguide import guide
 
-
 def test_reverse_compliment():
     seq1 = "ATTGCA"
     seq2 = "GCATC"
