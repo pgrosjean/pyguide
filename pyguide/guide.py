@@ -527,9 +527,10 @@ def write_single_log_file(local_df: pd.DataFrame,
             f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
 
 
-def write_arrayed_log_file(missing_genes: List[str],
-                           name: str,
-                           base_dir: str):
+def write_basic_log_file(missing_genes: List[str],
+                         name: str,
+                         base_dir: str,
+                         order_fomrat: str):
     """
     This file writes an arrayed log file
 
@@ -542,6 +543,8 @@ def write_arrayed_log_file(missing_genes: List[str],
         Name of user.
     base_dir : str
         The directory to save the log file to.
+    order_format : str
+        The order format either arrayed or pooled.
 
     Returns
     -------
@@ -550,7 +553,7 @@ def write_arrayed_log_file(missing_genes: List[str],
     # Setting up Log File
     now = datetime.now()
     date = now.strftime("%y_%m_%d")
-    filename = get_unique_filename(base_dir, f"log_file_{name}_{date}.txt")
+    filename = get_unique_filename(base_dir, f"log_file_{order_fomrat}_{name}_{date}.txt")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
     elif platform == "win32":
@@ -595,6 +598,38 @@ def update_local_db(filtered_df: pd.DataFrame,
     # num_list = np.arange(start_num, filtered_df.shape[0] + 1)
     # guide_ranks = filtered_df.groupby('gene')['score'].rank(ascending=False).astype('int').astype(str)
     # short_name_list = filtered_df['gene'] + '_' + ai_status + guide_ranks
+
+
+def write_pooled_txt(collated_df: pd.DataFrame,
+                     name: str,
+                     base_dir: str):
+    """
+    This function writes a text file containing the information
+    for ordering pooled guide libraries from Agilent.
+
+    Parameters
+    ----------
+    collated_df : pd.DataFrame
+        Data frame with collated guides.
+    name : str
+        Name of user.
+    base_dir : str
+        The base directory to save text file to.
+    Returns
+    -------
+    None
+    """
+    now = datetime.now()
+    date = now.strftime("%y_%m_%d")
+    filename = get_unique_filename(base_dir, f"order_pooled_{name}_{date}.txt")
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        file = f"{base_dir}/{filename}"
+    elif platform == "win32":
+        file = f"{base_dir}\\{filename}"
+    with open(file, 'w') as f:
+        for seq in collated_df['seq'].values:
+            full_seq = "CCGGTAACTATTCTAGCCCCACCTTGTTGG" + seq + "GTTTAAGAGCTAAGCGCAGCCCGAATACTTTCA"
+            f.write(full_seq + "\n")
 
 
 def order_guides(gene_list: List[str],
@@ -670,10 +705,12 @@ def order_guides(gene_list: List[str],
                           base_dir=base_dir)
 
         # Writing the arrayed log file
-        write_arrayed_log_file(missing_genes, name, base_dir)
+        write_basic_log_file(missing_genes, name, base_dir, "arrayed")
 
     elif order_format == 'pooled':
-        pass
+        # Writing the pooled ordering txt file
+        write_pooled_txt(collated_df, name, base_dir)
+        write_basic_log_file(missing_genes, name, base_dir, "pooled")
 
 
 def main():
