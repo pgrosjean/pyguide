@@ -1,3 +1,7 @@
+![example workflow](https://github.com/pgrosjean/pyguide/actions/workflows/python_package-linux.yml/badge.svg)
+![example workflow](https://github.com/pgrosjean/pyguide/actions/workflows/python_package-macos.yml/badge.svg)
+![example workflow](https://github.com/pgrosjean/pyguide/actions/workflows/python_package-windows.yml/badge.svg)
+
 # PYGUIDE
 Tools for ordering gRNA and maintaining gRNA libraries for CRISPRi/a work.
 
