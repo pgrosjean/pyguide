@@ -31,7 +31,8 @@ def read_gene_list(file: str) -> List[str]:
     with open(file) as f:
         lines = f.readlines()
         for line in lines:
-            gene_list.append(line.strip())
+            if line.strip() != '':
+                gene_list.append(line.strip())
     return gene_list
 
 
@@ -481,6 +482,7 @@ def write_single_csv(filtered_df: pd.DataFrame,
 def write_single_log_file(local_df: pd.DataFrame,
                           missing_genes: List[str],
                           name: str,
+                          ai_status: str,
                           base_dir: str):
     """
     Writes log file of where to find previously cloned
@@ -489,11 +491,13 @@ def write_single_log_file(local_df: pd.DataFrame,
     Parameters
     ----------
     local_df : pd.DataFrame
+        The dataframe of local library database.
     missing_genes : List[str]
-        Any genes in wish list that were not found in the
-        overall database.
+        Any genes in wish list that were not found in the overall database.
     name : str
         Name of user.
+    ai_status : str
+        CRISPRa or CIRPSRi.
     base_dir : str
         The directory to save the log file to.
 
@@ -501,6 +505,10 @@ def write_single_log_file(local_df: pd.DataFrame,
     -------
     None
     """
+    # Filtering for CRIPSRi/a status first
+    local_df['ai_status'] = local_df['Short Name'].apply(lambda x: x.split('_')[-1][0])
+    local_df = local_df.loc[local_df['ai_status'] == ai_status]
+
     # Setting up Log File
     now = datetime.now()
     date = now.strftime("%y_%m_%d")
@@ -510,7 +518,7 @@ def write_single_log_file(local_df: pd.DataFrame,
     elif platform == "win32":
         file = f"{base_dir}\\{filename}"
     else:
-        file = f"{base_dir}/{filename}"
+        file = f"{base_dir}/{filename}"  # always default to linux and macos
 
     # Writing to Log file
     with open(file, 'w') as f:
@@ -681,6 +689,7 @@ def order_guides(gene_list: List[str],
         cloned_dict = get_cloned_status(local_df,
                                         guides_per_gene=guides_per_gene,
                                         ai_status=ai_status)
+
         # Filtering for previously cloned guides
         filtered_df = filter_cloned_guides(collated_df, cloned_dict)
 
@@ -694,6 +703,7 @@ def order_guides(gene_list: List[str],
         write_single_log_file(local_df,
                               missing_genes=missing_genes,
                               name=name,
+                              ai_status=ai_status,
                               base_dir=base_dir)
 
     # Arrayed Guide Ordering
