@@ -8,11 +8,37 @@ def test_pooled_order_i():
     gene_list = guide.read_gene_list(file_path_2)
     assert gene_list[0] == "STAT3"
     guide.order_guides(gene_list,
-                 name="Test",
-                 ai_status="i",
-                 guides_per_gene=5,
-                 order_format="pooled",
-                 base_dir=os.path.join(file_path_1, "example"))
+                       name="Test",
+                       ai_status="i",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="human")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="i",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="mouse")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="i",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=False,
+                       organism="mouse")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="i",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="mouse")
 
 
 def test_pooled_order_a():
@@ -21,8 +47,34 @@ def test_pooled_order_a():
     gene_list = guide.read_gene_list(file_path_2)
     assert gene_list[0] == "STAT3"
     guide.order_guides(gene_list,
-                 name="Test",
-                 ai_status="a",
-                 guides_per_gene=5,
-                 order_format="pooled",
-                 base_dir=os.path.join(file_path_1, "example"))
+                       name="Test",
+                       ai_status="a",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="human")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="a",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="mouse")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="a",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=False,
+                       organism="mouse")
+    guide.order_guides(gene_list,
+                       name="Test",
+                       ai_status="a",
+                       guides_per_gene=5,
+                       order_format="pooled",
+                       base_dir=os.path.join(file_path_1, "example"),
+                       kampmann_lab=True,
+                       organism="mouse")

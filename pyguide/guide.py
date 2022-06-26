@@ -83,8 +83,9 @@ def filter_database(df: pd.DataFrame, gene_list: List[str]) -> pd.DataFrame:
     return filtered_df
 
 
-def get_hg_db(gene_list: List[str],
-              ai_status: str) -> pd.DataFrame:
+def get_guide_db(gene_list: List[str],
+                 ai_status: str,
+                 organism: str) -> pd.DataFrame:
     """
     This function reads in the human guide database and
     filters for genes of interest from the user defined
@@ -102,15 +103,24 @@ def get_hg_db(gene_list: List[str],
     db_df : pd.DataFrame
         The filtered dataframe of the database.
     """
+    assert organism in ["mouse", "human"], "Organism must be either mouse or human."
     # Opening CRISPRi/a sgRNA database
     file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     file_path = os.path.join(file_path, '..', 'data')
-    if ai_status == "i":
-        file = os.path.join(file_path, "CRISPRi_v2.txt")
-    elif ai_status == 'a':
-        file = os.path.join(file_path, "CRISPRa_v2.txt")
+    if organism == "mouse":
+        if ai_status == "i":
+            file = os.path.join(file_path, "CRISPRi_mouse_v2.txt")
+        elif ai_status == 'a':
+            file = os.path.join(file_path, "CRISPRa_mouse_v2.txt")
+        else:
+            raise Exception("ai status must be either a or i")
     else:
-        raise Exception("ai status must be either a or i")
+        if ai_status == "i":
+            file = os.path.join(file_path, "CRISPRi_v2.txt")
+        elif ai_status == 'a':
+            file = os.path.join(file_path, "CRISPRa_v2.txt")
+        else:
+            raise Exception("ai status must be either a or i")
     db_df = open_txt_database(file, header=False)  # Database DataFrame
     # Adding column names to database
     db_df = db_df.rename(columns={0: 'name', 1: 'gene', 2: 'score', 3: 'seq'})
@@ -538,7 +548,7 @@ def write_single_log_file(local_df: pd.DataFrame,
 def write_basic_log_file(missing_genes: List[str],
                          name: str,
                          base_dir: str,
-                         order_fomrat: str):
+                         order_format: str):
     """
     This file writes an arrayed log file
 
@@ -561,7 +571,7 @@ def write_basic_log_file(missing_genes: List[str],
     # Setting up Log File
     now = datetime.now()
     date = now.strftime("%y_%m_%d")
-    filename = get_unique_filename(base_dir, f"log_file_{order_fomrat}_{name}_{date}.txt")
+    filename = get_unique_filename(base_dir, f"log_file_{order_format}_{name}_{date}.txt")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
     elif platform == "win32":
@@ -634,6 +644,8 @@ def write_pooled_txt(collated_df: pd.DataFrame,
         file = f"{base_dir}/{filename}"
     elif platform == "win32":
         file = f"{base_dir}\\{filename}"
+    else:
+        file = f"{base_dir}/{filename}"  # Always baseline fall to Linux system
     with open(file, 'w') as f:
         for seq in collated_df['seq'].values:
             full_seq = "CCGGTAACTATTCTAGCCCCACCTTGTTGG" + seq + "GTTTAAGAGCTAAGCGCAGCCCGAATACTTTCA"
@@ -645,7 +657,9 @@ def order_guides(gene_list: List[str],
                  ai_status: str,
                  guides_per_gene: int,
                  order_format: str,
-                 base_dir: str):
+                 base_dir: str,
+                 kampmann_lab: bool,
+                 organism: str):
     """
     This function orders guides for cloning
     with a one-at-a-time method.
@@ -664,6 +678,10 @@ def order_guides(gene_list: List[str],
         Whether ordering arrayed, pooled, or single guides.
     base_dir: str
         The location to save the output files to.
+    kampmann_lab: bool
+        Whether the user is in the Kampmann Lab. Controls access to DataBase.
+    organism: str
+        Whether to get guides that target the mouse or human.
     """
     # Making all str inputs for if else statements lower case
     ai_status = ai_status.lower()
@@ -672,7 +690,7 @@ def order_guides(gene_list: List[str],
     assert guides_per_gene <= 10, "No more than 10 guides per gene allowed."
 
     # Pulling in sgRNA filtered database
-    db_df = get_hg_db(gene_list, ai_status=ai_status)
+    db_df = get_guide_db(gene_list, ai_status=ai_status, organism=organism)
 
     # Logging any genes in wishlist not found in database
     missing_genes = [gene for gene in gene_list if gene not in set(db_df['gene'].unique())]
@@ -682,29 +700,39 @@ def order_guides(gene_list: List[str],
 
     # Single Guide Ordering
     if order_format == 'single':
-        # Pulling in local Kampmann Lab Database
-        local_df = get_local_db(gene_list)
+        if kampmann_lab and organism == "human":
+            # Pulling in local Kampmann Lab Database
+            local_df = get_local_db(gene_list)
 
-        # Check if guides have been cloned before
-        cloned_dict = get_cloned_status(local_df,
-                                        guides_per_gene=guides_per_gene,
-                                        ai_status=ai_status)
+            # Check if guides have been cloned before
+            cloned_dict = get_cloned_status(local_df,
+                                            guides_per_gene=guides_per_gene,
+                                            ai_status=ai_status)
 
-        # Filtering for previously cloned guides
-        filtered_df = filter_cloned_guides(collated_df, cloned_dict)
+            # Filtering for previously cloned guides
+            filtered_df = filter_cloned_guides(collated_df, cloned_dict)
 
-        # Writing csv files for ordering guides
-        write_single_csv(filtered_df,
-                         ai_status=ai_status,
-                         name=name,
-                         base_dir=base_dir)
+            # Writing csv files for ordering guides
+            write_single_csv(filtered_df,
+                             ai_status=ai_status,
+                             name=name,
+                             base_dir=base_dir)
 
-        # Writing log file for finding already cloned guides and logging errors
-        write_single_log_file(local_df,
-                              missing_genes=missing_genes,
-                              name=name,
-                              ai_status=ai_status,
-                              base_dir=base_dir)
+            # Writing log file for finding already cloned guides and logging errors
+            write_single_log_file(local_df,
+                                  missing_genes=missing_genes,
+                                  name=name,
+                                  ai_status=ai_status,
+                                  base_dir=base_dir)
+        else:
+            # Writing the csv file for ordering single guides with no filtering
+            write_single_csv(collated_df,
+                             ai_status=ai_status,
+                             name=name,
+                             base_dir=base_dir)
+
+            # Writing the log file for the single guide ordering
+            write_basic_log_file(missing_genes, name, base_dir, "single")
 
     # Arrayed Guide Ordering
     elif order_format == 'arrayed':
@@ -744,10 +772,21 @@ def main():
                         type=str,
                         default='single',
                         help="order types: arrayed, pooled, or single.")
+    parser.add_argument("--kampmann_lab",
+                        type=bool,
+                        default=False,
+                        help="Are you a member of the Kampmann Lab?")
+    parser.add_argument("--organism",
+                        type=str,
+                        default="human",
+                        help="Guides that target the mouse or human genome.")
     args = parser.parse_args()
     # Reading wishlist genes into list
     file = args.wishlist_file
     gene_list = read_gene_list(file=file)
+    # Defining organism
+    organism_name = args.organism
+    organism_name = organism_name.lower()
     # Defining base directory to save files to
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         base_dir = "/".join(file.split("/")[:-1])
@@ -761,7 +800,9 @@ def main():
                  ai_status=args.ai,
                  guides_per_gene=args.guides_per_gene,
                  order_format=args.order_format,
-                 base_dir=base_dir)
+                 base_dir=base_dir,
+                 kampmann_lab=args.kampmann_lab,
+                 organism=args.organism)
 
 
 if __name__ == "__main__":
