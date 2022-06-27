@@ -30,7 +30,7 @@ pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=a --guides
 pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=2 --order_format=pooled
 
 # EXAMPLE: Ordering 3 CRISPRi mouse guides per gene for one at a time cloning
-pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=3 --order_format=single
+pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=3 --order_format=single --organism=mouse
 ```
 
 ### Flags for gRNA ordering using pyguide-order
