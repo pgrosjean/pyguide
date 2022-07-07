@@ -47,7 +47,7 @@ pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides
 
 --organism: Whether to generate guides for the human or mouse genome (pass 'mouse' or 'human' to this flag) defaults to human.
 
---kampmann_lab: Whether you are part of the Kampmann lab and have the database configured. Only pass true if you are in the lab.
+--kampmann_lab: Only add this flag if you are a member of the Kampmann Lab. Only include flag if relevant, do not pass any argument to this flag.
 
 ### pyguide-order outputs
 Upon running pyguide-order two files will be saved to the same directory as the wishlist file. 
