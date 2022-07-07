@@ -20,14 +20,17 @@ pyguide-order --help
 ```
 
 ```bash
-# EXAMPLE: Ordering 5 CRISPRi guides per gene for one at a time cloning
+# EXAMPLE: Ordering 5 CRISPRi human guides per gene for one at a time cloning
 pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=5 --order_format=single
 
-# EXAMPLE: Ordering 3 CRISPRa guides per gene for arrayed library
+# EXAMPLE: Ordering 3 CRISPRa human guides per gene for arrayed library
 pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=a --guides_per_gene=3 --order_format=arrayed
 
-# EXAMPLE: Ordering 2 CRISPRi guides per gene for pooled library
+# EXAMPLE: Ordering 2 CRISPRi human guides per gene for pooled library
 pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=2 --order_format=pooled
+
+# EXAMPLE: Ordering 3 CRISPRi mouse guides per gene for one at a time cloning
+pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides_per_gene=3 --order_format=single --organism=mouse
 ```
 
 ### Flags for gRNA ordering using pyguide-order
@@ -41,6 +44,10 @@ pyguide-order --wishlist_file=/path/to/wishlist_file --name=Name --ai=i --guides
 --guides_per_gene : Number of guides to order per gene
 
 --order_gormat : Whether to order single guides (IDT), arrayed library (IDT), or pooled library (Agilent) (pass 'single', 'arrayed', or 'pooled' for this flag)
+
+--organism: Whether to generate guides for the human or mouse genome (pass 'mouse' or 'human' to this flag) defaults to human.
+
+--kampmann_lab: Whether you are part of the Kampmann lab and have the database configured. Only pass true if you are in the lab.
 
 ### pyguide-order outputs
 Upon running pyguide-order two files will be saved to the same directory as the wishlist file. 
