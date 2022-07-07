@@ -13,7 +13,8 @@ setup(
         ]
     },
     entry_points={
-        'console_scripts': ['pyguide-order=pyguide.guide:main'],
+        'console_scripts': ['pyguide-order=pyguide.guide:main',
+                            'pyguide-collate=pyguide.pool:main'],
     },
     url='https://github.com/pgrosjean/pyguide',
     license='MIT',

@@ -13,8 +13,7 @@ from sys import platform
 
 def read_gene_list(file: str) -> List[str]:
     """
-    This function reads in gene names from a text file
-    and returns a numpy array of gene names.
+    This function reads in gene names from a text file and returns a numpy array of gene names.
 
     Parameters
     ----------
@@ -38,8 +37,7 @@ def read_gene_list(file: str) -> List[str]:
 
 def open_txt_database(file: str, header: bool = True) -> pd.DataFrame:
     """
-    This function reads in a txt database into a
-    pandas dataframe.
+    This function reads in a txt database into a pandas dataframe.
 
     Parameters
     ----------
@@ -87,16 +85,16 @@ def get_guide_db(gene_list: List[str],
                  ai_status: str,
                  organism: str) -> pd.DataFrame:
     """
-    This function reads in the human guide database and
-    filters for genes of interest from the user defined
-    gene list.
+    This function reads in the human guide database and filters for genes of interest from the user defined gene list.
 
     Parameters
     ----------
     gene_list : List[str]
         The list of genes of interest.
     ai_status : str
-        Whether to use CRISPRi/a
+        Whether to use CRISPRi/a.
+    organism : str
+        The name of the organism for generating guides.
 
     Returns
     -------
@@ -131,8 +129,7 @@ def get_guide_db(gene_list: List[str],
 
 def get_local_db(gene_list: List[str]) -> pd.DataFrame:
     """
-    This function filters and returns the local Kampmann Lab
-    Database for cloned sgRNAs.
+    This function filters and returns the local Kampmann Lab Database for cloned sgRNAs.
 
     Parameters
     ----------
@@ -145,7 +142,7 @@ def get_local_db(gene_list: List[str]) -> pd.DataFrame:
     """
     file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     file_path = os.path.join(file_path, '..', 'data')
-    local_db_file = os.path.join(file_path, "human_sgrnas.txt") # Local Kampmann Lab Database
+    local_db_file = os.path.join(file_path, "human_sgrnas.txt")  # Local Kampmann Lab Database
     kl_df = open_txt_database(local_db_file, header=True)
     # Adding gene column to local Kampmann lab database
     kl_df["gene"] = kl_df["Short Name"].apply(lambda x: x.split("_")[0])
@@ -158,9 +155,8 @@ def get_cloned_status(local_df: pd.DataFrame,
                       guides_per_gene: int,
                       ai_status: str) -> Dict[str, int]:
     """
-    This function determines whether guides have already been ordered
-    for the genes in the user defined gene list and if more need to be
-    ordered to reach the user defined guides_per_gene number.
+    This function determines whether guides have already been ordered for the genes in the user defined gene list and
+    if more need to be ordered to reach the user defined guides_per_gene number.
 
     Parameters
     ----------
@@ -174,8 +170,8 @@ def get_cloned_status(local_df: pd.DataFrame,
     Returns
     -------
     cloned: Dict[str, int]
-        Dictionary containing the number of guides that have already been cloned
-        be cloned for each gene that has already had a guide cloned.
+        Dictionary containing the number of guides that have already been cloned be cloned for each gene that has
+        already had a guide cloned.
     """
     cloned = {}
     if local_df.shape[0] == 0:
@@ -195,9 +191,7 @@ def get_cloned_status(local_df: pd.DataFrame,
 def collate_guides(guides_per_gene: int,
                    hg_db: pd.DataFrame) -> pd.DataFrame:
     """
-    This function collates guides from the human
-    sgRNA Database. The hg_db is either for
-    CRISPRi or CRISPRa.
+    This function collates guides from the human sgRNA Database. The hg_db is either for CRISPRi or CRISPRa.
 
     Parameters
     ----------
@@ -221,8 +215,7 @@ def collate_guides(guides_per_gene: int,
 def filter_cloned_guides(collated_df: pd.DataFrame,
                          cloned_dict: Dict[str, int]) -> pd.DataFrame:
     """
-    This function filters out any of the previously cloned guides
-    so that only non-cloned guides are ordered.
+    This function filters out any of the previously cloned guides so that only non-cloned guides are ordered.
 
     Parameters
     ----------
@@ -279,8 +272,7 @@ def reverse_compliment(seq: str) -> str:
 def get_short_names(df: pd.DataFrame,
                     ai_status: str) -> List[str]:
     """
-    This function generates the short names for guides.
-    e.g. STAT3_i1 for the top ranked CRISPRi guide.
+    This function generates the short names for guides. e.g. STAT3_i1 for the top ranked CRISPRi guide.
 
     Parameters
     ----------
@@ -301,8 +293,7 @@ def get_short_names(df: pd.DataFrame,
 def split_dataframe(df: pd.DataFrame,
                     chunk_size: int = 96) -> List[pd.DataFrame]:
     """
-    This function splits a dataframe into chunks of user
-    defined size.
+    This function splits a dataframe into chunks of user defined size.
 
     Parameters
     ----------
@@ -328,14 +319,12 @@ def write_arrayed_csv(collated_df: pd.DataFrame,
                       name: str,
                       base_dir: str):
     """
-    This function writes the ordering csv file
-    used to order guides for arrayed guide cloning.
+    This function writes the ordering csv file used to order guides for arrayed guide cloning.
 
     Parameters
     ----------
     collated_df : pd.DataFrame
-        The dataframe with the collated guides that need
-        to be ordered.
+        The dataframe with the collated guides that need to be ordered.
     ai_status : str
         Whether CRISPRi or CRISPRa.
     name : str
@@ -408,8 +397,7 @@ def write_arrayed_csv(collated_df: pd.DataFrame,
 def get_unique_filename(base_dir: str,
                         filename: str) -> str:
     """
-    This function checks if the filename already exists at a
-    directory and if it does it returns and unique updated
+    This function checks if the filename already exists at a directory and if it does it returns and unique updated
     file name.
 
     Parameters
@@ -443,8 +431,7 @@ def write_single_csv(filtered_df: pd.DataFrame,
                      name: str,
                      base_dir: str):
     """
-    This function writes the ordering csv file
-    used to order guides for single guide cloning.
+    This function writes the ordering csv file used to order guides for single guide cloning.
 
     Parameters
     ----------
@@ -495,8 +482,7 @@ def write_single_log_file(local_df: pd.DataFrame,
                           ai_status: str,
                           base_dir: str):
     """
-    Writes log file of where to find previously cloned
-    guides and any error logging.
+    Writes log file of where to find previously cloned guides and any error logging.
 
     Parameters
     ----------
@@ -507,7 +493,7 @@ def write_single_log_file(local_df: pd.DataFrame,
     name : str
         Name of user.
     ai_status : str
-        CRISPRa or CIRPSRi.
+        CRISPRa or CRISPRi.
     base_dir : str
         The directory to save the log file to.
 
@@ -550,13 +536,12 @@ def write_basic_log_file(missing_genes: List[str],
                          base_dir: str,
                          order_format: str):
     """
-    This file writes an arrayed log file
+    This file writes an arrayed log file.
 
     Parameters
     ----------
     missing_genes : List[str]
-        Any genes in wish list that were not found in the
-        overall database.
+        Any genes in wish list that were not found in the overall database.
     name : str
         Name of user.
     base_dir : str
@@ -594,8 +579,7 @@ def update_local_db(filtered_df: pd.DataFrame,
                     name: str,
                     ai_status: str):
     """
-    This function updates the local database with the new
-    guides being ordered.
+    This function updates the local database with the new guides being ordered.
 
     Parameters
     ----------
@@ -622,8 +606,7 @@ def write_pooled_txt(collated_df: pd.DataFrame,
                      name: str,
                      base_dir: str):
     """
-    This function writes a text file containing the information
-    for ordering pooled guide libraries from Agilent.
+    This function writes a text file containing the information for ordering pooled guide libraries from Agilent.
 
     Parameters
     ----------
@@ -661,8 +644,7 @@ def order_guides(gene_list: List[str],
                  kampmann_lab: bool,
                  organism: str):
     """
-    This function orders guides for cloning
-    with a one-at-a-time method.
+    This function orders guides for cloning with a one-at-a-time method.
 
     Parameters
     ----------
@@ -699,8 +681,8 @@ def order_guides(gene_list: List[str],
     collated_df = collate_guides(guides_per_gene, db_df)
 
     # Single Guide Ordering
-    if order_format == 'single':
-        if kampmann_lab and organism == "human":
+    if order_format == "single":
+        if kampmann_lab == True and organism == "human":
             # Pulling in local Kampmann Lab Database
             local_df = get_local_db(gene_list)
 
@@ -735,7 +717,7 @@ def order_guides(gene_list: List[str],
             write_basic_log_file(missing_genes, name, base_dir, "single")
 
     # Arrayed Guide Ordering
-    elif order_format == 'arrayed':
+    elif order_format == "arrayed":
         # Writing the arrayed ordering csv file
         write_arrayed_csv(collated_df,
                           ai_status=ai_status,
@@ -745,9 +727,11 @@ def order_guides(gene_list: List[str],
         # Writing the arrayed log file
         write_basic_log_file(missing_genes, name, base_dir, "arrayed")
 
-    elif order_format == 'pooled':
+    elif order_format == "pooled":
         # Writing the pooled ordering txt file
+        # TODO: Update pooled ordering to account multiple pooled libraries
         write_pooled_txt(collated_df, name, base_dir)
+        # TODO: Update logging for pooled to account for primer sequences
         write_basic_log_file(missing_genes, name, base_dir, "pooled")
 
 
@@ -773,8 +757,7 @@ def main():
                         default='single',
                         help="order types: arrayed, pooled, or single.")
     parser.add_argument("--kampmann_lab",
-                        type=bool,
-                        default=False,
+                        action="store_true",
                         help="Are you a member of the Kampmann Lab?")
     parser.add_argument("--organism",
                         type=str,
@@ -802,7 +785,7 @@ def main():
                  order_format=args.order_format,
                  base_dir=base_dir,
                  kampmann_lab=args.kampmann_lab,
-                 organism=args.organism)
+                 organism=organism_name)
 
 
 if __name__ == "__main__":
