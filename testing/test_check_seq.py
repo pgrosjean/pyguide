@@ -1,5 +1,5 @@
 from pyguide import check_seq
-
+import os
 
 def check_collate_files():
     file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
