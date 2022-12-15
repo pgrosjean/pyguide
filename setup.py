@@ -2,11 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='pyguide',
-    version='0.1.0',
+    version='0.1.1',
     packages=find_packages(),
+    python_requires=">=3.7.0",
     install_requires=["pandas>=1.4.1",
                       "numpy>=1.22.2",
-                      "setuptools>=57.4.0"],
+                      "setuptools>=57.4.0",
+                      "mygene>=3.2.2"],
     extras_require={
         "dev": [
             "pytest>=3.7",
@@ -14,7 +16,8 @@ setup(
     },
     entry_points={
         'console_scripts': ['pyguide-order=pyguide.guide:main',
-                            'pyguide-collate=pyguide.pool:main'],
+                            'pyguide-collate=pyguide.pool:main',
+                            'pyguide-check-seq=pyguide.check_seq:main'],
     },
     url='https://github.com/pgrosjean/pyguide',
     license='MIT',

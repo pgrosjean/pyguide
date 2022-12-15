@@ -1,14 +1,19 @@
 import pandas as pd
 import numpy as np
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple, Union
 from argparse import ArgumentParser
 from datetime import datetime
 from sys import platform
+import mygene
 
 
 ####################
 # Defining Functions
+####################
+
+####################
+# I/O Functionality
 ####################
 
 def read_gene_list(file: str) -> List[str]:
@@ -25,7 +30,7 @@ def read_gene_list(file: str) -> List[str]:
         gene_list : List[str]
             The list of wishlist genes.
     """
-    assert file.endswith(".txt"), "Gene files must be .txt files"
+    assert file.endswith(".txt"), "Gene files must be .txt file"
     gene_list = []
     with open(file) as f:
         lines = f.readlines()
@@ -34,6 +39,36 @@ def read_gene_list(file: str) -> List[str]:
                 gene_list.append(line.strip())
     return gene_list
 
+
+def read_gene_list_pooled(file: str) -> Tuple[List[str], List[str], List[str], List[str]]:
+    """
+    This file reads in a pooled library gene wishlist file.
+
+    Parameters
+    ----------
+    file : str
+        The collated pooled library gene wishlist file.
+
+    Returns
+    -------
+    genes : List[str]
+    left_primers : List[str]
+    right_primers : List[str]
+    lib_num : List[str]
+    """
+    # reading in the gene list information as a DataFrame
+    df = pd.read_csv(file, sep="\t", header=None)
+    assert len(df.columns) == 4, "Must run pyguide-collate on gene wishlists before pooled ordering."
+    genes = list(df[0].values)
+    left_primers = list(df[1].values)
+    right_primers = list(df[2].values)
+    lib_num = list(df[3].values)
+    return genes, left_primers, right_primers, lib_num
+
+
+####################
+# Checking Database Functionality
+####################
 
 def open_txt_database(file: str, header: bool = True) -> pd.DataFrame:
     """
@@ -247,6 +282,24 @@ def filter_cloned_guides(collated_df: pd.DataFrame,
         return filtered_df
 
 
+####################
+# Helper Functions
+####################
+
+def get_current_date() -> str:
+    """
+    This function returns the current date.
+
+    Returns
+    -------
+    date : str
+        The current date.
+    """
+    now = datetime.now()
+    date = now.strftime("%y_%m_%d")
+    return date
+
+
 def reverse_compliment(seq: str) -> str:
     """
     This function returns the reverse compliment of a DNA sequence.
@@ -314,6 +367,42 @@ def split_dataframe(df: pd.DataFrame,
     return chunks
 
 
+def get_unique_filename(base_dir: str,
+                        filename: str) -> str:
+    """
+    This function checks if the filename already exists at a directory and if it does it returns and unique updated
+    file name.
+
+    Parameters
+    ----------
+    base_dir : str
+        Directory to check for file uniqueness.
+    filename : str
+        The file name to check.
+
+    Returns
+    -------
+    unique_filename : str
+        The unique filename for the directory.
+    """
+    file_list = os.listdir(base_dir)
+    c = 1
+    fname_check = filename
+    while fname_check in file_list:
+        split_file = filename.split('.')
+        assert len(split_file) == 2, "Do not use a . in your filenames."
+        fname = split_file[0]
+        suffix = split_file[-1]
+        fname_check = fname + f"_{c}." + suffix
+        c += 1
+    unique_filename = fname_check
+    return unique_filename
+
+
+####################
+# Arrayed Ordering Functions
+####################
+
 def write_arrayed_csv(collated_df: pd.DataFrame,
                       ai_status: str,
                       name: str,
@@ -344,8 +433,8 @@ def write_arrayed_csv(collated_df: pd.DataFrame,
 
     # Defining well ids
     well_ids = []
-    for num in np.arange(1, 13):
-        for letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+    for letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+        for num in np.arange(1, 13):
             num = str(num)
             well_ids.append(letter + num)
 
@@ -378,8 +467,7 @@ def write_arrayed_csv(collated_df: pd.DataFrame,
                               'Name': bp_name,
                               'Sequence': bp_oligos})
         # Writing dataframes to csv files
-        now = datetime.now()
-        date = now.strftime("%y_%m_%d")
+        date = get_current_date()
         tp_filename = get_unique_filename(base_dir, f"order_arrayed_{name}_{date}_top_plate_{plate_num}.csv")
         bp_filename = get_unique_filename(base_dir, f"order_arrayed_{name}_{date}_bottom_plate_{plate_num}.csv")
         if platform == "linux" or platform == "linux2" or platform == "darwin":
@@ -394,37 +482,59 @@ def write_arrayed_csv(collated_df: pd.DataFrame,
                          index=False)
 
 
-def get_unique_filename(base_dir: str,
-                        filename: str) -> str:
+def write_basic_log_file(missing_genes: List[str],
+                         changed_genes: Dict[str, str],
+                         name: str,
+                         base_dir: str,
+                         order_format: str):
     """
-    This function checks if the filename already exists at a directory and if it does it returns and unique updated
-    file name.
+    This file writes a basic log file.
 
     Parameters
     ----------
+    missing_genes : List[str]
+        Any genes in wish list that were not found in the overall database.
+    changed_genes : None or Dict[str, str]
+        A dictionary containing changes from queried genes to actual gene name in database or None.
+    name : str
+        Name of user.
     base_dir : str
-        Directory to check for file uniqueness.
-    filename : str
-        The file name to check.
+        The directory to save the log file to.
+    order_format : str
+        The order format of either arrayed or single.
 
     Returns
     -------
-    unique_filename : str
-        The unique filename for the directory.
+    None
     """
-    file_list = os.listdir(base_dir)
-    c = 1
-    fname_check = filename
-    while fname_check in file_list:
-        split_file = filename.split('.')
-        assert len(split_file) == 2, "Do not use a . in your filenames."
-        fname = split_file[0]
-        suffix = split_file[-1]
-        fname_check = fname + f"_{c}." + suffix
-        c += 1
-    unique_filename = fname_check
-    return unique_filename
+    # Setting up Log File
+    date = get_current_date()
+    filename = get_unique_filename(base_dir, f"log_file_{order_format}_{name}_{date}.txt")
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        file = f"{base_dir}/{filename}"
+    elif platform == "win32":
+        file = f"{base_dir}\\{filename}"
+    else:
+        file = f"{base_dir}/{filename}"
 
+    # Writing to Log file
+    with open(file, 'w') as f:
+        f.write(f"This query was performed by {name} on {date} \n \n")
+        if len(missing_genes) != 0:
+            f.write("\n")
+            for missing_gene in missing_genes:
+                f.write(f"Gene {missing_gene} was not found in the DataBase." + "\n")
+            f.write("\n")
+        if changed_genes is not None:
+            for changed_gene in changed_genes.keys():
+                f.write(f"Query for {changed_gene} was mapped to {changed_genes[changed_gene]} in database." + "\n")
+        else:
+            f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
+
+
+####################
+# Single (one-at-a-time) Ordering Functions
+####################
 
 def write_single_csv(filtered_df: pd.DataFrame,
                      ai_status: str,
@@ -467,8 +577,7 @@ def write_single_csv(filtered_df: pd.DataFrame,
                              'Sequence': oligo_list,
                              'Scale': scale,
                              'Purification': purification})
-    now = datetime.now()
-    date = now.strftime("%y_%m_%d")
+    date = get_current_date()
     filename = get_unique_filename(base_dir, f"order_single_{name}_{date}.csv")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         order_df.to_csv(f"{base_dir}/{filename}", index=False)
@@ -478,6 +587,7 @@ def write_single_csv(filtered_df: pd.DataFrame,
 
 def write_single_log_file(local_df: pd.DataFrame,
                           missing_genes: List[str],
+                          changed_genes: Dict[str, str],
                           name: str,
                           ai_status: str,
                           base_dir: str):
@@ -488,6 +598,8 @@ def write_single_log_file(local_df: pd.DataFrame,
     ----------
     local_df : pd.DataFrame
         The dataframe of local library database.
+    changed_genes : None or Dict[str, str]
+        A dictionary containing changes from queried genes to actual gene name in database or None.
     missing_genes : List[str]
         Any genes in wish list that were not found in the overall database.
     name : str
@@ -506,8 +618,7 @@ def write_single_log_file(local_df: pd.DataFrame,
     local_df = local_df.loc[local_df['ai_status'] == ai_status]
 
     # Setting up Log File
-    now = datetime.now()
-    date = now.strftime("%y_%m_%d")
+    date = get_current_date()
     filename = get_unique_filename(base_dir, f"log_file_{name}_{date}.txt")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
@@ -527,80 +638,17 @@ def write_single_log_file(local_df: pd.DataFrame,
             f.write("\n")
             for missing_gene in missing_genes:
                 f.write(f"Gene {missing_gene} was not found in the DataBase." + "\n")
+            f.write("\n")
+        if changed_genes is not None:
+            for changed_gene in changed_genes.keys():
+                f.write(f"Query for {changed_gene} was mapped to {changed_genes[changed_gene]} in database." + "\n")
         if local_df.shape[0] == 0 and len(missing_genes) == 0:
             f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
 
 
-def write_basic_log_file(missing_genes: List[str],
-                         name: str,
-                         base_dir: str,
-                         order_format: str):
-    """
-    This file writes an arrayed log file.
-
-    Parameters
-    ----------
-    missing_genes : List[str]
-        Any genes in wish list that were not found in the overall database.
-    name : str
-        Name of user.
-    base_dir : str
-        The directory to save the log file to.
-    order_format : str
-        The order format either arrayed or pooled.
-
-    Returns
-    -------
-    None
-    """
-    # Setting up Log File
-    now = datetime.now()
-    date = now.strftime("%y_%m_%d")
-    filename = get_unique_filename(base_dir, f"log_file_{order_format}_{name}_{date}.txt")
-    if platform == "linux" or platform == "linux2" or platform == "darwin":
-        file = f"{base_dir}/{filename}"
-    elif platform == "win32":
-        file = f"{base_dir}\\{filename}"
-    else:
-        file = f"{base_dir}/{filename}"
-
-    # Writing to Log file
-    with open(file, 'w') as f:
-        f.write(f"This query was performed by {name} on {date} \n \n")
-        if len(missing_genes) != 0:
-            f.write("\n")
-            for missing_gene in missing_genes:
-                f.write(f"Gene {missing_gene} was not found in the DataBase." + "\n")
-        else:
-            f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
-
-
-def update_local_db(filtered_df: pd.DataFrame,
-                    name: str,
-                    ai_status: str):
-    """
-    This function updates the local database with the new guides being ordered.
-
-    Parameters
-    ----------
-    filtered_df : pd.DataFrame
-    name : str
-    ai_status : str
-
-    Returns
-    -------
-    None
-    """
-    pass
-    # user_name = name
-    # local_db_file = "../data/human_sgrnas.txt"  # Local Kampmann Lab Database
-    # kl_df = open_txt_database(local_db_file, header=True)
-    # start_num = np.amax(kl_df['#']) + 1
-    # name_list = filtered_df['name']
-    # num_list = np.arange(start_num, filtered_df.shape[0] + 1)
-    # guide_ranks = filtered_df.groupby('gene')['score'].rank(ascending=False).astype('int').astype(str)
-    # short_name_list = filtered_df['gene'] + '_' + ai_status + guide_ranks
-
+####################
+# Pooled Ordering Functions
+####################
 
 def write_pooled_txt(collated_df: pd.DataFrame,
                      name: str,
@@ -616,24 +664,174 @@ def write_pooled_txt(collated_df: pd.DataFrame,
         Name of user.
     base_dir : str
         The base directory to save text file to.
+
     Returns
     -------
     None
     """
-    now = datetime.now()
-    date = now.strftime("%y_%m_%d")
+    date = get_current_date()
     filename = get_unique_filename(base_dir, f"order_pooled_{name}_{date}.txt")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
     elif platform == "win32":
         file = f"{base_dir}\\{filename}"
     else:
-        file = f"{base_dir}/{filename}"  # Always baseline fall to Linux system
+        file = f"{base_dir}/{filename}"  # Always baseline assumes Linux system
+    res_left = "CCACCTTGTTG"  # BstXI restriction enzyme
+    res_right = "GTTTAAGAGCTAAGCTGG"  # Bpi1102I restriction enzyme
     with open(file, 'w') as f:
-        for seq in collated_df['seq'].values:
-            full_seq = "CCGGTAACTATTCTAGCCCCACCTTGTTGG" + seq + "GTTTAAGAGCTAAGCGCAGCCCGAATACTTTCA"
+        seqs = collated_df['seq'].values
+        left_primers = collated_df['left_primers'].values
+        right_primers = collated_df['right_primers'].values
+        for seq, left_primer, right_primer in zip(seqs, left_primers, right_primers):
+            left_adapter = left_primer
+            right_adapter = reverse_compliment(right_primer)
+            # 5' --> 3'
+            full_seq = left_adapter + res_left + seq + res_right + right_adapter
             f.write(full_seq + "\n")
 
+
+def write_pooled_log_file(missing_genes: List[str],
+                          changed_genes: Dict[str, str],
+                          name: str,
+                          base_dir: str,
+                          primer_df: pd.DataFrame):
+    """
+    This function writes a log file for pooled ordering that contains information about if a requested gene could not
+    be found. If the requested gene was an alias or had a different name than the one that was originally queried this
+    file contains that information. And additionally this file gives information about the primer sequences used for
+    the different requested libraries.
+
+
+    Parameters
+    ----------
+    missing_genes : List[str]
+        Any genes in wish list that were not found in the overall database.
+    changed_genes : None or Dict[str, str]
+        A dictionary containing changes from queried genes to actual gene name in database or None.
+    name : str
+        Name of user.
+    base_dir : str
+        The directory to save the log file to.
+    primer_df : pd.DataFrame
+        The data frame containing the information about primers and library numbers.
+
+
+    Returns
+    -------
+    None
+
+    """
+    # Setting up Log File
+    date = get_current_date()
+    filename = get_unique_filename(base_dir, f"log_file_pooled_{name}_{date}.txt")
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        file = f"{base_dir}/{filename}"
+    elif platform == "win32":
+        file = f"{base_dir}\\{filename}"
+    else:
+        file = f"{base_dir}/{filename}"
+
+    # Filtering primer_df for unique library and primer information
+    primer_df = primer_df.drop(columns='gene_symbol')
+    primer_df = primer_df.drop_duplicates()
+    left_primers = list(primer_df['left_primers'].values)
+    right_primers = list(primer_df['right_primers'].values)
+    library_numbers = list(primer_df['lib_num'].values)
+
+    # Writing to Log file
+    with open(file, 'w') as f:
+        f.write(f"This query was performed by {name} on {date} \n \n")
+        if len(missing_genes) != 0:
+            f.write("\n")
+            for missing_gene in missing_genes:
+                f.write(f"Gene {missing_gene} was not found in the DataBase." + "\n")
+            f.write("\n")
+        if changed_genes is not None:
+            for changed_gene in changed_genes.keys():
+                f.write(f"Query for {changed_gene} was mapped to {changed_genes[changed_gene]} in database." + "\n")
+        else:
+            f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
+        f.write(f"\nPrimer Information\n------------------\nLibrary Number\t Primer 1\tPrimer 2\n")
+        for left_primer, right_primer, library_number in zip(left_primers, right_primers, library_numbers):
+            f.write(f"{library_number}\t{left_primer}\t{right_primer}")
+
+
+####################
+# MyGene Querying and Symbol Mapping Functions
+####################
+
+def make_query_map(query_df: pd.DataFrame) -> Dict[str, str]:
+    """
+    This function generates a map between the queried name and the database name.
+
+    Parameters
+    ----------
+    query_df: pd.DataFrame
+        DataFrame containing information about the queried genes vs those that are in the database.
+
+    Returns
+    -------
+    query_map: Dict[str, str]
+    """
+    query_map = {}
+    for query, symbol, alias in zip(query_df.index, query_df['symbol'].values, query_df['alias'].values):
+        if type(alias) != float:
+            if type(alias) != list:
+                alias = list(alias)
+            query_map[symbol] = query
+            for al in alias:
+                query_map[al] = query
+    return query_map
+
+
+def query_genes(symbol_list: List[str], species: str) -> Union[pd.DataFrame, None]:
+    """
+    This function queries human genes using the mygenes API.
+
+    Parameters
+    ----------
+    species : str
+        The name of the species that you are querying (must be mouse or human)
+    symbol_list : List[str]
+        The list of gene symbols to match to other aliases and ensemble gene IDs and entrez IDs.
+
+    Returns
+    -------
+    gene_df : Union[pd.DataFrame, None]
+        Dataframe containing all the gene information, unless the gene name queried is not found where None is returned.
+    """
+    species = species.lower()
+    if species == "human":
+        species_num = 9606
+    elif species == "mouse":
+        species_num = 10090
+    else:
+        species_num = None
+    assert species_num is not None, "Need to pass either human or mouse for species!"
+    mg = mygene.MyGeneInfo()
+    gene_map = mg.querymany(symbol_list,
+                            scopes=['symbol', 'alias'],
+                            species=species_num,
+                            fields='ensembl.gene, entrezgene, symbol, alias',
+                            as_dataframe=True,
+                            returnall=True,
+                            verbose=False)
+    if len([x for x in gene_map['missing']]) == len(symbol_list):
+        return None
+    elif 'alias' not in gene_map['out'].columns:
+        print(gene_map['out'])
+        return None
+    else:
+        gene_df = gene_map['out']
+        if 'notfound' in gene_df.columns:
+            gene_df = gene_df.loc[gene_df['notfound'] != True, :]
+        return gene_df
+
+
+####################
+# Main entry point for all guide ordering
+####################
 
 def order_guides(gene_list: List[str],
                  name: str,
@@ -642,7 +840,8 @@ def order_guides(gene_list: List[str],
                  order_format: str,
                  base_dir: str,
                  kampmann_lab: bool,
-                 organism: str):
+                 organism: str,
+                 primer_df: Union[pd.DataFrame, None] = None):
     """
     This function orders guides for cloning with a one-at-a-time method.
 
@@ -664,6 +863,8 @@ def order_guides(gene_list: List[str],
         Whether the user is in the Kampmann Lab. Controls access to DataBase.
     organism: str
         Whether to get guides that target the mouse or human.
+    primer_df: pd.DataFrame
+        Data frame containing information about primers for pooled ordering.
     """
     # Making all str inputs for if else statements lower case
     ai_status = ai_status.lower()
@@ -676,13 +877,39 @@ def order_guides(gene_list: List[str],
 
     # Logging any genes in wishlist not found in database
     missing_genes = [gene for gene in gene_list if gene not in set(db_df['gene'].unique())]
+    if len(missing_genes) > 0:
+        # Checking missing genes against standardized web API for known genes
+        missing_df = query_genes(missing_genes, species=organism)
+        if missing_df is not None:
+            query_map = make_query_map(missing_df)
+            alias_names = np.hstack(list(query_map.keys()))
+            symbols = np.hstack(missing_df['symbol'].values)
+            missing_filter = list(np.hstack([alias_names, symbols]))
+            missing_db_df = get_guide_db(missing_filter, ai_status=ai_status, organism=organism)
+            # ^ Returns any of aliases or symbols. So then I need to map these outputs to the original gene name
+            # that was requested by the user
+            db_df = pd.concat([missing_db_df, db_df])
+            mapped_missed_genes = [query_map[gene] for gene in missing_db_df['gene'].values]
+            all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
+            missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
+            # Capturing modified queries for returning to user
+            mod_query_map = {}  # maps original query to updated name
+            for name in missing_db_df['gene']:
+                if name in set(list(query_map.keys())):
+                    mod_query_map[query_map[name]] = name
+        else:
+            mod_query_map = None
+    else:
+        mod_query_map = None
+    # Updating gene_list
+    gene_list = list(db_df['gene'].values)
 
     # Collate guides
     collated_df = collate_guides(guides_per_gene, db_df)
 
     # Single Guide Ordering
     if order_format == "single":
-        if kampmann_lab == True and organism == "human":
+        if kampmann_lab is True and organism == "human":
             # Pulling in local Kampmann Lab Database
             local_df = get_local_db(gene_list)
 
@@ -703,6 +930,7 @@ def order_guides(gene_list: List[str],
             # Writing log file for finding already cloned guides and logging errors
             write_single_log_file(local_df,
                                   missing_genes=missing_genes,
+                                  changed_genes=mod_query_map,
                                   name=name,
                                   ai_status=ai_status,
                                   base_dir=base_dir)
@@ -714,7 +942,7 @@ def order_guides(gene_list: List[str],
                              base_dir=base_dir)
 
             # Writing the log file for the single guide ordering
-            write_basic_log_file(missing_genes, name, base_dir, "single")
+            write_basic_log_file(missing_genes, mod_query_map, name, base_dir, "single")
 
     # Arrayed Guide Ordering
     elif order_format == "arrayed":
@@ -725,17 +953,26 @@ def order_guides(gene_list: List[str],
                           base_dir=base_dir)
 
         # Writing the arrayed log file
-        write_basic_log_file(missing_genes, name, base_dir, "arrayed")
+        write_basic_log_file(missing_genes,
+                             mod_query_map,
+                             name,
+                             base_dir,
+                             "arrayed")
 
+    # Pooled guide ordering
     elif order_format == "pooled":
+        assert primer_df is not None, "must provide primer information when pooled ordering."
+        # changing gene names in the primer df if necessary
+        if mod_query_map is not None:
+            primer_df['gene_symbol'] = primer_df['gene_symbol'].apply(lambda x: mod_query_map.get(x, x))
+        collated_df = collated_df.merge(primer_df, left_on='gene', right_on='gene_symbol')
         # Writing the pooled ordering txt file
-        # TODO: Update pooled ordering to account multiple pooled libraries
         write_pooled_txt(collated_df, name, base_dir)
-        # TODO: Update logging for pooled to account for primer sequences
-        write_basic_log_file(missing_genes, name, base_dir, "pooled")
+        write_pooled_log_file(missing_genes, mod_query_map, name, base_dir, primer_df)
 
 
 def main():
+    ## TODO: Get rid of the Kampmann Lab flag and replace with the AWS RDS Queries
     # Setting up CLI
     parser = ArgumentParser()
     parser.add_argument("--wishlist_file",
@@ -766,7 +1003,16 @@ def main():
     args = parser.parse_args()
     # Reading wishlist genes into list
     file = args.wishlist_file
-    gene_list = read_gene_list(file=file)
+
+    if args.order_format.lower() == "pooled":
+        gene_list, left_primers, right_primers, lib_num = read_gene_list_pooled(file=file)
+        primer_df = pd.DataFrame({'gene_symbol': gene_list,
+                                  'left_primers': left_primers,
+                                  'right_primers': right_primers,
+                                  'lib_num': lib_num})
+    else:
+        gene_list = read_gene_list(file=file)
+        primer_df = None
     # Defining organism
     organism_name = args.organism
     organism_name = organism_name.lower()
@@ -778,14 +1024,27 @@ def main():
     else:
         raise Exception("Operating system not recognized.")
     # Writing csv files for ordering guides
-    order_guides(gene_list,
-                 name=args.name,
-                 ai_status=args.ai,
-                 guides_per_gene=args.guides_per_gene,
-                 order_format=args.order_format,
-                 base_dir=base_dir,
-                 kampmann_lab=args.kampmann_lab,
-                 organism=organism_name)
+    assert args.order_format in ["single", "pooled", "arrayed"], "Only single, pooled, or arrayed order formats."
+    if args.order_format == "pooled":
+        assert primer_df is not None
+        order_guides(gene_list,
+                     name=args.name,
+                     ai_status=args.ai,
+                     guides_per_gene=args.guides_per_gene,
+                     order_format=args.order_format,
+                     base_dir=base_dir,
+                     kampmann_lab=args.kampmann_lab,
+                     organism=organism_name,
+                     primer_df=primer_df)
+    else:
+        order_guides(gene_list,
+                     name=args.name,
+                     ai_status=args.ai,
+                     guides_per_gene=args.guides_per_gene,
+                     order_format=args.order_format,
+                     base_dir=base_dir,
+                     kampmann_lab=args.kampmann_lab,
+                     organism=organism_name)
 
 
 if __name__ == "__main__":

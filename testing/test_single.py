@@ -5,7 +5,9 @@ import os
 def test_single_i():
     file_path_1 = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     file_path_2 = os.path.join(file_path_1, "example", "gene_list.txt")
+    file_path_mouse = os.path.join(file_path_1, "example", "gene_list_mouse.txt")
     gene_list = guide.read_gene_list(file_path_2)
+    gene_list_mouse = guide.read_gene_list(file_path_mouse)
     assert gene_list[0] == "STAT3"
     guide.order_guides(gene_list,
                        name="Test",
@@ -23,7 +25,7 @@ def test_single_i():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        kampmann_lab=False)
-    guide.order_guides(gene_list,
+    guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -31,7 +33,7 @@ def test_single_i():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
                        kampmann_lab=True)
-    guide.order_guides(gene_list,
+    guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -44,7 +46,9 @@ def test_single_i():
 def test_single_a():
     file_path_1 = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     file_path_2 = os.path.join(file_path_1, "example", "gene_list.txt")
+    file_path_mouse = os.path.join(file_path_1, "example", "gene_list_mouse.txt")
     gene_list = guide.read_gene_list(file_path_2)
+    gene_list_mouse = guide.read_gene_list(file_path_mouse)
     assert gene_list[0] == "STAT3"
     guide.order_guides(gene_list,
                        name="Test",
@@ -62,7 +66,7 @@ def test_single_a():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        kampmann_lab=False)
-    guide.order_guides(gene_list,
+    guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -70,7 +74,7 @@ def test_single_a():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
                        kampmann_lab=True)
-    guide.order_guides(gene_list,
+    guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
