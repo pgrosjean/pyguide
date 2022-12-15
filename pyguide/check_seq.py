@@ -156,15 +156,14 @@ def main():
     args = parser.parse_args()
     # Generating file list
     file_list = collate_files(args.file_dir, ".seq")
+    assert len(file_list) != 0, "No .seq files found in directory."
     # Getting guide IDs for perfect matches
     guide_id_arr = check_seq(file_list, args.organism, args.ai)
     # Writing log file
     date = get_current_date()
     file_dir = args.file_dir
-    if not file_dir.endswith("/"):
-        file_dir = file_dir + "/"
     log_file_name = f"log_check_seq_{date}.txt"
-    log_file_name = file_dir + get_unique_filename(args.file_dir, log_file_name)
+    log_file_name = os.path.join(file_dir, get_unique_filename(args.file_dir, log_file_name))
     with open(log_file_name, "w") as f:
         for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
             f.write(f"{file} \t {guide_id}\n")
