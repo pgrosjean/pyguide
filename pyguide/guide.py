@@ -1026,7 +1026,7 @@ def main():
     # Writing csv files for ordering guides
     assert args.order_format in ["single", "pooled", "arrayed"], "Only single, pooled, or arrayed order formats."
     if args.order_format == "pooled":
-        assert primer_df is not None
+        assert primer_df is not None, "You must run pyguide-collate and generate primers for pooled ordering."
         order_guides(gene_list,
                      name=args.name,
                      ai_status=args.ai,
