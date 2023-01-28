@@ -688,7 +688,9 @@ def write_pooled_txt(collated_df: pd.DataFrame,
             right_adapter = reverse_compliment(right_primer)
             # 5' --> 3'
             full_seq = left_adapter + res_left + seq + res_right + right_adapter
+            full_seq_rev_comp = reverse_compliment(full_seq)
             f.write(full_seq + "\n")
+            f.write(full_seq_rev_comp + "\n")
 
 
 def write_pooled_log_file(missing_genes: List[str],
@@ -702,7 +704,6 @@ def write_pooled_log_file(missing_genes: List[str],
     file contains that information. And additionally this file gives information about the primer sequences used for
     the different requested libraries.
 
-
     Parameters
     ----------
     missing_genes : List[str]
@@ -715,7 +716,6 @@ def write_pooled_log_file(missing_genes: List[str],
         The directory to save the log file to.
     primer_df : pd.DataFrame
         The data frame containing the information about primers and library numbers.
-
 
     Returns
     -------
