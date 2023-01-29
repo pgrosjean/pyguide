@@ -47,7 +47,7 @@ pyguide-check-seq --help
 
 ## Single Guide Ordering Usage
 
-### Parameters for pyguide-order
+### Flags for pyguide-order
 
 **Flags you must provide**:
 - **wishlist_file**: Path to your file containing a list of the genes for which you wish to order guides. (see testing/examples/gene_list.txt for example)
@@ -103,7 +103,7 @@ This file will be a csv file that starts with order_single_ and can be uploaded 
 
 ## Arrayed Guide Ordering Usage
 
-### Parameters for pyguide-order
+### Flags for pyguide-order
 
 **Flags you must provide**:
 - **wishlist_file**: Path to your file containing a list of the genes for which you wish to order guides. (see testing/examples/gene_list.txt for example)
@@ -160,7 +160,7 @@ There will be at least two files produced for this order format, all of which wi
 **Note: For pooled guide ordering you must run pyguide-collate before running pyguide-order.**
 This is to enable multiple pooled libraries to be ordered at once that can then be selectively amplified out of the oligo pool using libary specific primers.
 
-### Parameters for pyguide-collate
+### Flags for pyguide-collate
 
 **Flags you must provide**:
 - **wishlist_files**: Paths to one or more wishlist files (one wishlist file per pooled library)
@@ -171,7 +171,7 @@ This is to enable multiple pooled libraries to be ordered at once that can then 
 ### Output of pyguide-collate
 A collated pooled wishlist file that contains the genes of interested and the primers that will be used for sequencing will be saved to the same directory as your user-defined wishlist that you provide to pyguide-collate.
 
-### Parameters for pyguide-order
+### Flags for pyguide-order for pooled ordering
 
 **Flags you must provide**:
 - **wishlist_file**: Path to your file containing a list of the genes for which you wish to order guides. (see testing/examples/gene_list.txt for example)
@@ -234,4 +234,25 @@ This file contains information on:
 **(2) Order Files**
 This is a text file that starts with order_pooled_ and can be used to order a DNA oligo pool from Agilent.
 
+
+
+
+
+
+
+
+
+
+
+## pyguide-check-seq usage
+
+### Flags for pyguide-check-seq
+
+**Flags you must provide**:
+- **file_dir**: Path to the directory containing .seq files generated from sanger sequencing of the guides you ordered (see testing/example/seq_files as an example directory).
+- **ai**: Whether the guides that you are checking the sequencing results of are CRISPR interference (i) or activation (a).
+- **organism**: Whether the guides that you are checking the sequencing results of target mouse genes or human genes.
+
+### pyguide-check-seq outputs
+Upon running pyguide-check-seq a text file will be generated with two tab seperated columns, the first column with the .seq file name and the second column with the corresponding guide. If a .seq file does not correspond to a guide then it will not be returned in the text file.
 
