@@ -34,7 +34,7 @@ def test_pooled_order_i():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="human",
                        primer_df=primer_df)
     guide.order_guides(glm,
@@ -43,7 +43,7 @@ def test_pooled_order_i():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
     guide.order_guides(glm,
@@ -52,7 +52,7 @@ def test_pooled_order_i():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=False,
+                       check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
     guide.order_guides(glm,
@@ -61,7 +61,7 @@ def test_pooled_order_i():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
 
@@ -93,7 +93,7 @@ def test_pooled_order_a():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="human",
                        primer_df=primer_df)
     guide.order_guides(glm,
@@ -102,7 +102,7 @@ def test_pooled_order_a():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
     guide.order_guides(glm,
@@ -111,7 +111,7 @@ def test_pooled_order_a():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=False,
+                       check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
     guide.order_guides(glm,
@@ -120,6 +120,6 @@ def test_pooled_order_a():
                        guides_per_gene=5,
                        order_format="pooled",
                        base_dir=os.path.join(file_path_1, "example"),
-                       kampmann_lab=True,
+                       check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)

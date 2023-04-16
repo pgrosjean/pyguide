@@ -168,3 +168,4 @@ def main():
         for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
             f.write(f"{file} \t {guide_id}\n")
 
+

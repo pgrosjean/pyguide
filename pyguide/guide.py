@@ -162,6 +162,22 @@ def get_guide_db(gene_list: List[str],
     return db_df
 
 
+def get_empirical_db() -> pd.DataFrame:
+    """
+    This function reads in the empirical guide database.
+
+    Returns
+    -------
+    empirical_df: pd.DataFrame
+        Dataframe containing empirical phenotypes for guides in the databases.
+    """
+    file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path = os.path.join(file_path, '..', 'data')
+    file = os.path.join(file_path, "sgRNAempiricalPhenotypes.csv")
+    empirical_df = pd.read_csv(file)
+    return empirical_df
+
+
 def get_local_db(gene_list: List[str]) -> pd.DataFrame:
     """
     This function filters and returns the local Kampmann Lab Database for cloned sgRNAs.
@@ -244,6 +260,101 @@ def collate_guides(guides_per_gene: int,
     collated_df = hg_db.sort_values('score', ascending=False).groupby('gene').head(guides_per_gene)
     collated_df = collated_df.sort_values('gene')
     collated_df = collated_df.reset_index(drop=True)
+    return collated_df
+
+
+def groupby_and_rank(df, col_1, col_2, col_3, head):
+    """
+    Group a dataframe by col_3, then rank the resulting groups by col_1 (if
+    possible) or col_2 (if not). The head parameter determines how many rows
+    from each group are returned.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input dataframe.
+    col_1: str
+        Empirical guide score column name.
+    col_2: str
+        Computational guide score column name.
+    col_3: str
+        Group by column name.
+    head: int
+        number of rows to take from each group.
+
+    Returns
+    -------
+    pd.DataFrame
+        Ranked and filtered dataframe.
+    """
+
+    def rank_col_1(group):
+        """
+        Helper function for ranking based on col_1. Assumes that the group
+        contains both numerical values and NaNs in col_1, and numerical
+        values in col_2.
+        """
+        col_1_mask = group[col_1].notna()
+        num_col_1 = col_1_mask.sum()
+
+        col_2_ranks = group.loc[~col_1_mask, col_2].apply(lambda x: -x).argsort().argsort()
+        if num_col_1 == 0:
+            return col_2_ranks
+        col_1_ranks = np.empty(len(group))
+        col_1_ranks.fill(np.nan)
+        col_1_ranks[col_1_mask] = (-group.loc[col_1_mask, col_1]).argsort().argsort()
+        col_1_ranks[np.isnan(col_1_ranks)] = col_2_ranks + num_col_1
+        assert np.sum(np.isnan(col_1_ranks)) == 0
+        return col_1_ranks
+
+    groups = df.groupby(col_3)
+
+    ranked = []
+    for _, group in groups:
+        ranks = rank_col_1(group)
+        ranked_group = group.assign(rank=ranks)
+        ranked_group = ranked_group.sort_values(by="rank", na_position="last")
+        ranked_group = ranked_group.head(head)
+        ranked.append(ranked_group)
+
+    result = pd.concat(ranked, axis=0)
+    result = result.drop(columns=["rank"])
+    result = result.reset_index(drop=True)
+    assert result["score"].isna().sum() == 0
+    return result
+
+
+def collate_guides_empirical(guides_per_gene: int,
+                             db: pd.DataFrame,
+                             screen_db: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function collates guides from the provided sgRNA Database using the empirical
+    scores first and then using the computationally predicted scores second.
+
+    Parameters
+    ----------
+    guides_per_gene: int
+        The number of guides to order per gene.
+    db: pd.DataFrame
+        The sgRNA database.
+    screen_db: pd.DataFrame
+        The database of empirical guide RNA phenotype scores.
+
+    Returns
+    -------
+    pd.DataFrame
+        The filtered dataframe with the specific guides for ordering.
+    """
+    assert db["score"].isna().sum() == 0
+    # Merge the two dataframes
+    df = db.merge(screen_db, left_on='name', right_on='sgRNA', how='left')
+    # Call the groupby_and_rank function
+    filtered_df = groupby_and_rank(df, 'meanEmpiricalPhenotype', 'score', 'gene', guides_per_gene)
+    collated_df = filtered_df.loc[:, db.columns]
+
+    collated_df = collated_df.sort_values('gene')
+    collated_df = collated_df.reset_index(drop=True)
+    # return the filtered dataframe
     return collated_df
 
 
@@ -338,6 +449,7 @@ def get_short_names(df: pd.DataFrame,
     -------
     short_names : List[str]
     """
+    assert df['score'].isna().sum() == 0
     guide_ranks = df.groupby('gene')['score'].rank(ascending=False).astype('int').astype(str)
     short_names = list(df['gene'] + '_' + ai_status + guide_ranks)
     return short_names
@@ -839,7 +951,7 @@ def order_guides(gene_list: List[str],
                  guides_per_gene: int,
                  order_format: str,
                  base_dir: str,
-                 kampmann_lab: bool,
+                 check_db: bool,
                  organism: str,
                  primer_df: Union[pd.DataFrame, None] = None):
     """
@@ -859,7 +971,7 @@ def order_guides(gene_list: List[str],
         Whether ordering arrayed, pooled, or single guides.
     base_dir: str
         The location to save the output files to.
-    kampmann_lab: bool
+    check_db: bool
         Whether the user is in the Kampmann Lab. Controls access to DataBase.
     organism: str
         Whether to get guides that target the mouse or human.
@@ -874,6 +986,7 @@ def order_guides(gene_list: List[str],
 
     # Pulling in sgRNA filtered database
     db_df = get_guide_db(gene_list, ai_status=ai_status, organism=organism)
+    assert db_df['score'].isna().sum() == 0
 
     # Logging any genes in wishlist not found in database
     missing_genes = [gene for gene in gene_list if gene not in set(db_df['gene'].unique())]
@@ -889,6 +1002,7 @@ def order_guides(gene_list: List[str],
             # ^ Returns any of aliases or symbols. So then I need to map these outputs to the original gene name
             # that was requested by the user
             db_df = pd.concat([missing_db_df, db_df])
+            assert db_df['score']
             mapped_missed_genes = [query_map[gene] for gene in missing_db_df['gene'].values]
             all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
             missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
@@ -904,13 +1018,17 @@ def order_guides(gene_list: List[str],
     # Updating gene_list
     gene_list = list(db_df['gene'].values)
 
+    print(db_df.loc[db_df['score'].isna()])
+    assert db_df['score'].isna().sum() == 0
+    # Reading in empirical guide data
+    empirical_df = get_empirical_db()
     # Collate guides
-    collated_df = collate_guides(guides_per_gene, db_df)
+    collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
 
     # Single Guide Ordering
     if order_format == "single":
-        if kampmann_lab is True and organism == "human":
-            # Pulling in local Kampmann Lab Database
+        if check_db is True and organism == "human":
+            # Pulling in local Lab Database
             local_df = get_local_db(gene_list)
 
             # Check if guides have been cloned before
@@ -972,7 +1090,6 @@ def order_guides(gene_list: List[str],
 
 
 def main():
-    ## TODO: Get rid of the Kampmann Lab flag and replace with the AWS RDS Queries
     # Setting up CLI
     parser = ArgumentParser()
     parser.add_argument("--wishlist_file",
@@ -993,9 +1110,9 @@ def main():
                         type=str,
                         default='single',
                         help="order types: arrayed, pooled, or single.")
-    parser.add_argument("--kampmann_lab",
+    parser.add_argument("--check_db",
                         action="store_true",
-                        help="Are you a member of the Kampmann Lab?")
+                        help="Whether to check the database for already cloned guides.")
     parser.add_argument("--organism",
                         type=str,
                         default="human",
@@ -1033,7 +1150,7 @@ def main():
                      guides_per_gene=args.guides_per_gene,
                      order_format=args.order_format,
                      base_dir=base_dir,
-                     kampmann_lab=args.kampmann_lab,
+                     check_db=args.check_db,
                      organism=organism_name,
                      primer_df=primer_df)
     else:
@@ -1043,7 +1160,7 @@ def main():
                      guides_per_gene=args.guides_per_gene,
                      order_format=args.order_format,
                      base_dir=base_dir,
-                     kampmann_lab=args.kampmann_lab,
+                     check_db=args.check_db,
                      organism=organism_name)
 
 

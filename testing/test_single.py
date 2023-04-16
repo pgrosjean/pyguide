@@ -16,7 +16,7 @@ def test_single_i():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
-                       kampmann_lab=True)
+                       check_db=True)
     guide.order_guides(gene_list,
                        name="Test",
                        ai_status="i",
@@ -24,7 +24,7 @@ def test_single_i():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
-                       kampmann_lab=False)
+                       check_db=False)
     guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="i",
@@ -32,7 +32,7 @@ def test_single_i():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
-                       kampmann_lab=True)
+                       check_db=True)
     guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="i",
@@ -40,7 +40,7 @@ def test_single_i():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
-                       kampmann_lab=False)
+                       check_db=False)
 
 
 def test_single_a():
@@ -57,7 +57,7 @@ def test_single_a():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
-                       kampmann_lab=True)
+                       check_db=True)
     guide.order_guides(gene_list,
                        name="Test",
                        ai_status="a",
@@ -65,7 +65,7 @@ def test_single_a():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
-                       kampmann_lab=False)
+                       check_db=False)
     guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="a",
@@ -73,7 +73,7 @@ def test_single_a():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
-                       kampmann_lab=True)
+                       check_db=True)
     guide.order_guides(gene_list_mouse,
                        name="Test",
                        ai_status="a",
@@ -81,4 +81,4 @@ def test_single_a():
                        order_format="single",
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
-                       kampmann_lab=False)
+                       check_db=False)
