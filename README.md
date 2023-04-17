@@ -5,7 +5,7 @@
 # PYGUIDE
 **Overview**: Tools for ordering gRNA and maintaining gRNA libraries for CRISPRi/a work. All functionalities assume that you are ordering guides for use in the pMK1334 plasmid (which you can request from the Kampmann Lab) and that you are using gRNAs from the libraries defined in the [Horlbeck et al 2016 paper](https://elifesciences.org/articles/19760#content).
 
-**Database functionality**: The current implementation for checkin if gRNAs have already been cloned in this current repository uses a user-provided CSV file /data/human_sgrnas.csv. **Note: this is only implemented for single order format for the human species.** Current work is being done to implement AWS databse functionality. Stay tuned...
+**Database functionality**: The current implementation for checking if gRNAs have already been cloned in this current repository uses a user-provided CSV file /data/human_sgrnas.csv. **Note: this is only implemented for single order format for the human species.** Current work is being done to implement AWS databse functionality. Stay tuned...
 
 # Installation
 ```bash
