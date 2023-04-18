@@ -252,6 +252,9 @@ This is a text file that starts with order_pooled_ and can be used to order a DN
 - **file_dir**: Path to the directory containing .seq files generated from sanger sequencing of the guides you ordered (see testing/example/seq_files as an example directory).
 - **ai**: Whether the guides that you are checking the sequencing results of are CRISPR interference (i) or activation (a).
 - **organism**: Whether the guides that you are checking the sequencing results of target mouse genes or human genes.
+- **name**: Your username
+- **backbone**: The backbone you are using. Either pMK1334 or pLG15.
+- **update_db**: Only include this flag if you are checking sequencing for single guides that should be put into the local database.
 
 ### pyguide-check-seq outputs
 Upon running pyguide-check-seq a text file will be generated with two tab seperated columns, the first column with the .seq file name and the second column with the corresponding guide. If a .seq file does not correspond to a guide then it will not be returned in the text file.
