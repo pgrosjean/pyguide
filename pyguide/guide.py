@@ -8,6 +8,10 @@ from sys import platform
 import mygene
 
 
+## TODO: Add a step for the plasmid backbone
+## TODO: Check to make sure that we have the correct plasmid context for different backbones
+## TODO: When outputting the check seq log file add a column with the plasmid number assigned to that correct sequence
+
 ####################
 # Defining Functions
 ####################
@@ -351,10 +355,30 @@ def collate_guides_empirical(guides_per_gene: int,
     # Call the groupby_and_rank function
     filtered_df = groupby_and_rank(df, 'meanEmpiricalPhenotype', 'score', 'gene', guides_per_gene)
     collated_df = filtered_df.loc[:, db.columns]
-
     collated_df = collated_df.sort_values('gene')
     collated_df = collated_df.reset_index(drop=True)
     # return the filtered dataframe
+    return collated_df
+
+
+def collate_ntcs(num_ntc: int, db: pd.DataFrame):
+    """
+    This function collates a DataFrame with a set of num_ntc number of randomly selected NTCs.
+
+    Parameters
+    ----------
+    num_ntc: int
+        The number of NTC guides to order
+    db: pd.DataFrame
+        The sgRNA data frame.
+
+    Returns
+    -------
+    collated_df: pd.DataFrame
+        The collated dataframe with the non-targeting control guides.
+    """
+    db_df = db.loc[db['gene'] == 'negative_control']
+    collated_df = db_df.sample(n=num_ntc)
     return collated_df
 
 
@@ -783,12 +807,16 @@ def write_pooled_txt(collated_df: pd.DataFrame,
     """
     date = get_current_date()
     filename = get_unique_filename(base_dir, f"order_pooled_{name}_{date}.txt")
+    filename_2 = get_unique_filename(base_dir, f"order_pooled_{name}_{date}_info.csv")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
+        file_2 = f"{base_dir}/{filename_2}"
     elif platform == "win32":
         file = f"{base_dir}\\{filename}"
+        file_2 = f"{base_dir}\\{filename_2}"
     else:
-        file = f"{base_dir}/{filename}"  # Always baseline assumes Linux system
+        file = f"{base_dir}/{filename}"  # Always baseline assumes Linux OS
+        file_2 = f"{base_dir}/{filename_2}"
     res_left = "CCACCTTGTTG"  # BstXI restriction enzyme
     res_right = "GTTTAAGAGCTAAGCTGG"  # Bpi1102I restriction enzyme
     with open(file, 'w') as f:
@@ -803,6 +831,7 @@ def write_pooled_txt(collated_df: pd.DataFrame,
             full_seq_rev_comp = reverse_compliment(full_seq)
             f.write(full_seq + "\n")
             f.write(full_seq_rev_comp + "\n")
+    collated_df.to_csv(file_2)
 
 
 def write_pooled_log_file(missing_genes: List[str],
@@ -866,7 +895,7 @@ def write_pooled_log_file(missing_genes: List[str],
             f.write("All queried guides have not yet been cloned and no errors were encountered." + "\n")
         f.write(f"\nPrimer Information\n------------------\nLibrary Number\t Primer 1\tPrimer 2\n")
         for left_primer, right_primer, library_number in zip(left_primers, right_primers, library_numbers):
-            f.write(f"{library_number}\t{left_primer}\t{right_primer}")
+            f.write(f"{library_number}\t{left_primer}\t{right_primer}\n")
 
 
 ####################
@@ -932,7 +961,6 @@ def query_genes(symbol_list: List[str], species: str) -> Union[pd.DataFrame, Non
     if len([x for x in gene_map['missing']]) == len(symbol_list):
         return None
     elif 'alias' not in gene_map['out'].columns:
-        print(gene_map['out'])
         return None
     else:
         gene_df = gene_map['out']
@@ -953,7 +981,9 @@ def order_guides(gene_list: List[str],
                  base_dir: str,
                  check_db: bool,
                  organism: str,
-                 primer_df: Union[pd.DataFrame, None] = None):
+                 ntc_frac: Union[float, None] = None,
+                 primer_df: Union[pd.DataFrame, None] = None
+                 ):
     """
     This function orders guides for cloning with a one-at-a-time method.
 
@@ -977,6 +1007,8 @@ def order_guides(gene_list: List[str],
         Whether to get guides that target the mouse or human.
     primer_df: pd.DataFrame
         Data frame containing information about primers for pooled ordering.
+    ntc_frac: float
+        The number of ntc guides to order if pooled ordering.
     """
     # Making all str inputs for if else statements lower case
     ai_status = ai_status.lower()
@@ -1002,23 +1034,21 @@ def order_guides(gene_list: List[str],
             # ^ Returns any of aliases or symbols. So then I need to map these outputs to the original gene name
             # that was requested by the user
             db_df = pd.concat([missing_db_df, db_df])
-            assert db_df['score']
-            mapped_missed_genes = [query_map[gene] for gene in missing_db_df['gene'].values]
+            mapped_missed_genes = [query_map.get(gene) for gene in missing_db_df['gene'].values]
+            mapped_missed_genes = [x for x in mapped_missed_genes if x is not None]
             all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
             missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
             # Capturing modified queries for returning to user
             mod_query_map = {}  # maps original query to updated name
-            for name in missing_db_df['gene']:
-                if name in set(list(query_map.keys())):
-                    mod_query_map[query_map[name]] = name
+            for gene_name in missing_db_df['gene']:
+                if gene_name in set(list(query_map.keys())):
+                    mod_query_map[query_map[gene_name]] = gene_name
         else:
             mod_query_map = None
     else:
         mod_query_map = None
     # Updating gene_list
     gene_list = list(db_df['gene'].values)
-
-    print(db_df.loc[db_df['score'].isna()])
     assert db_df['score'].isna().sum() == 0
     # Reading in empirical guide data
     empirical_df = get_empirical_db()
@@ -1071,11 +1101,11 @@ def order_guides(gene_list: List[str],
                           base_dir=base_dir)
 
         # Writing the arrayed log file
-        write_basic_log_file(missing_genes,
-                             mod_query_map,
-                             name,
-                             base_dir,
-                             "arrayed")
+        write_basic_log_file(missing_genes=missing_genes,
+                             changed_genes=mod_query_map,
+                             name=name,
+                             base_dir=base_dir,
+                             order_format="arrayed")
 
     # Pooled guide ordering
     elif order_format == "pooled":
@@ -1084,7 +1114,28 @@ def order_guides(gene_list: List[str],
         if mod_query_map is not None:
             primer_df['gene_symbol'] = primer_df['gene_symbol'].apply(lambda x: mod_query_map.get(x, x))
         collated_df = collated_df.merge(primer_df, left_on='gene', right_on='gene_symbol')
+        # Adding in negative controls to pooled libraries
+        unique_library_info = primer_df.loc[:, ['left_primers', 'right_primers', 'lib_num']].drop_duplicates()
+        unique_library_info = unique_library_info.reset_index(drop=True)
+        ntc_db = get_guide_db(['negative_control'], ai_status=ai_status, organism=organism)
+        ntc_sets = {}
+        for library_number in primer_df['lib_num'].unique():
+            num_ntc = int(ntc_frac * primer_df.loc[primer_df['lib_num'] == library_number].shape[0])
+            ntc_df = collate_ntcs(num_ntc=num_ntc, db=ntc_db)
+            ntc_df['gene_symbol'] = ntc_df['gene']
+            ntc_df = ntc_df.reset_index(drop=True)
+            for_concat = np.repeat(unique_library_info.loc[unique_library_info['lib_num'] == library_number].values, len(ntc_df), axis=0)
+            for_concat = pd.DataFrame({'left_primers': for_concat[:, 0],
+                                       'right_primers': for_concat[:, 1],
+                                       'lib_num': for_concat[:, 2]})
+            ntc_df = pd.concat([ntc_df, for_concat], axis=1)
+            ntc_df['lib_num'] = [library_number]*len(ntc_df)
+            ntc_sets[library_number] = ntc_df
+
+        for ntc_set in ntc_sets.values():
+            collated_df = pd.concat([collated_df, ntc_set], axis=0)
         # Writing the pooled ordering txt file
+        print(collated_df)
         write_pooled_txt(collated_df, name, base_dir)
         write_pooled_log_file(missing_genes, mod_query_map, name, base_dir, primer_df)
 
@@ -1094,7 +1145,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("--wishlist_file",
                         type=str,
-                        help="Path to txt file with gene wishlist.")
+                        help="Path to txt file with gene or guide wishlist. Note: if guides pass batch_retest flag.")
     parser.add_argument("--name",
                         type=str,
                         help="Your name.")
@@ -1117,6 +1168,14 @@ def main():
                         type=str,
                         default="human",
                         help="Guides that target the mouse or human genome.")
+    parser.add_argument("--ntc_frac",
+                        type=float,
+                        default=0.2,
+                        help="The ratio of your library to order as NTCs: 0.2 equates to 20 percent the length of the library."
+                        )
+    parser.add_argument("--batch_retest",
+                        action="store_true",
+                        help="Pass this flag when wishlist contains individual guides for reordering")
     args = parser.parse_args()
     # Reading wishlist genes into list
     file = args.wishlist_file
@@ -1144,6 +1203,7 @@ def main():
     assert args.order_format in ["single", "pooled", "arrayed"], "Only single, pooled, or arrayed order formats."
     if args.order_format == "pooled":
         assert primer_df is not None, "You must run pyguide-collate and generate primers for pooled ordering."
+        ntc_frac = args.ntc_frac
         order_guides(gene_list,
                      name=args.name,
                      ai_status=args.ai,
@@ -1152,7 +1212,8 @@ def main():
                      base_dir=base_dir,
                      check_db=args.check_db,
                      organism=organism_name,
-                     primer_df=primer_df)
+                     primer_df=primer_df,
+                     ntc_frac=ntc_frac)
     else:
         order_guides(gene_list,
                      name=args.name,
