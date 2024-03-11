@@ -3,6 +3,7 @@ import numpy as np
 import os
 from pyguide.guide import open_txt_database, get_current_date, get_unique_filename
 from argparse import ArgumentParser
+import pandas as pd
 
 
 def check_seq(file_list: List[str], organism: str, ai: str) -> List[str]:
@@ -153,6 +154,16 @@ def main():
                         type=str,
                         default="human",
                         help="Guides that target the mouse or human genome.")
+    parser.add_argument("--name",
+                        type=str,
+                        help="The name of the user checking the sequence.")
+    parser.add_argument("--backbone",
+                        type=str,
+                        default="pMK1334",
+                        help="The name of the vectors for the guides been cloned into.")
+    parser.add_argument("--update_db",
+                        action="store_true",
+                        help="Whether to update the single guide database. Only pass for checking single guides!")
     args = parser.parse_args()
     # Generating file list
     file_list = collate_files(args.file_dir, ".seq")
@@ -164,8 +175,21 @@ def main():
     file_dir = args.file_dir
     log_file_name = f"log_check_seq_{date}.txt"
     log_file_name = os.path.join(file_dir, get_unique_filename(args.file_dir, log_file_name))
-    with open(log_file_name, "w") as f:
-        for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
-            f.write(f"{file} \t {guide_id}\n")
+
+
+    # Modifying Database
+    # This involves opening the human sgrnas and assigning a new number to the
+    if args.update_db:
+        file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        file_path = os.path.join(file_path, '..', 'data')
+        file = os.path.join(file_path, "human_sgrnas.txt")
+        df = pd.read_csv(file)
+
+    else:
+        with open(log_file_name, "w") as f:
+            for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
+                f.write(f"{file} \t {guide_id}\n")
+        # # Opening Database
+
 
 

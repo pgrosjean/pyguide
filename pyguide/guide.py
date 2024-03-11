@@ -377,6 +377,9 @@ def collate_ntcs(num_ntc: int, db: pd.DataFrame):
     collated_df: pd.DataFrame
         The collated dataframe with the non-targeting control guides.
     """
+    if num_ntc <= 2:
+        num_ntc = 2
+    assert num_ntc >= 0
     db_df = db.loc[db['gene'] == 'negative_control']
     collated_df = db_df.sample(n=num_ntc)
     return collated_df
@@ -981,7 +984,7 @@ def order_guides(gene_list: List[str],
                  base_dir: str,
                  check_db: bool,
                  organism: str,
-                 ntc_frac: Union[float, None] = None,
+                 ntc_frac: float = 0.2,
                  primer_df: Union[pd.DataFrame, None] = None
                  ):
     """
@@ -1117,10 +1120,16 @@ def order_guides(gene_list: List[str],
         # Adding in negative controls to pooled libraries
         unique_library_info = primer_df.loc[:, ['left_primers', 'right_primers', 'lib_num']].drop_duplicates()
         unique_library_info = unique_library_info.reset_index(drop=True)
-        ntc_db = get_guide_db(['negative_control'], ai_status=ai_status, organism=organism)
+        ntc_db = get_guide_db(['negative_control'], ai_status='i', organism=organism)
         ntc_sets = {}
+
+        # Iterating through the libraries for ordering and generating NTCs
         for library_number in primer_df['lib_num'].unique():
+            assert primer_df.loc[primer_df['lib_num'] == library_number].shape[0] >= 0
             num_ntc = int(ntc_frac * primer_df.loc[primer_df['lib_num'] == library_number].shape[0])
+            if num_ntc <= 2:
+                num_ntc = 2
+            assert num_ntc >= 2, f" {num_ntc_float} Must have at least one non-targeting control when ordering pooled libraries."
             ntc_df = collate_ntcs(num_ntc=num_ntc, db=ntc_db)
             ntc_df['gene_symbol'] = ntc_df['gene']
             ntc_df = ntc_df.reset_index(drop=True)
@@ -1135,7 +1144,6 @@ def order_guides(gene_list: List[str],
         for ntc_set in ntc_sets.values():
             collated_df = pd.concat([collated_df, ntc_set], axis=0)
         # Writing the pooled ordering txt file
-        print(collated_df)
         write_pooled_txt(collated_df, name, base_dir)
         write_pooled_log_file(missing_genes, mod_query_map, name, base_dir, primer_df)
 
