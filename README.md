@@ -9,7 +9,7 @@
 
 # Installation
 ```bash
-git clone github.com/pgrosjean/pyguide
+git clone https://github.com/pgrosjean/pyguide.git
 cd pyguide
 pip install -e .
 ```
