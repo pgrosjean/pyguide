@@ -167,6 +167,10 @@ def main():
     args = parser.parse_args()
     # Generating file list
     file_list = collate_files(args.file_dir, ".seq")
+    if len(file_list) == 0:
+        file_list = collate_files(args.file_dir, ".fa")
+    if len(file_list) == 0:
+        file_list = collate_files(args.file_dir, ".fasta")
     assert len(file_list) != 0, "No .seq files found in directory."
     # Getting guide IDs for perfect matches
     guide_id_arr = check_seq(file_list, args.organism, args.ai)
