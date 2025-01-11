@@ -150,17 +150,14 @@ def filter_database(df: pd.DataFrame,
     """
     if len(guide_ids) > 0:
         filtered_df_guide = df[df['name'].isin(guide_ids)]
-        assert len(filtered_df_guide) > 0, "No guides found in database."
     if len(gene_names) > 0:
         filtered_df_gene = df[df['gene'].isin(gene_names)]
-        assert len(filtered_df_gene) > 0, "No genes found in database."
     if len(guide_ids) > 0 and len(gene_names) > 0:
         filtered_df = pd.concat((filtered_df_guide, filtered_df_gene), axis=0)
     elif len(guide_ids) > 0:
         filtered_df = filtered_df_guide
     elif len(gene_names) > 0:
         filtered_df = filtered_df_gene
-    assert len(filtered_df) > 0, "No guides or genes found in database."
     return filtered_df
 
 
@@ -1158,7 +1155,7 @@ def order_guides(guide_ids: List[str],
                 mapped_missed_genes = [query_map.get(gene) for gene in missing_db_df['gene'].values]
                 mapped_missed_genes = [x for x in mapped_missed_genes if x is not None]
                 all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
-                missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
+                missing_genes = [gene for gene in gene_names if gene not in all_mapped_genes]
                 # Capturing modified queries for returning to user
                 mod_query_map = {}  # maps original query to updated name
                 for gene_name in missing_db_df['gene']:
