@@ -1,5 +1,6 @@
 pandas~=1.4.1
-numpy~=1.22.2
+numpy~=1.23.1
 setuptools~=57.4.0
 pyguide~=0.1.0
 mygene~=3.2.2
+biothings-client==0.2.6
