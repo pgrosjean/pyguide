@@ -20,6 +20,34 @@ import mygene
 # I/O Functionality
 ####################
 
+def read_wishlist(file: str) -> Tuple[List[str], List[str]]:
+    """
+    Reads a wishlist file containing either guide IDs or gene names.
+
+    Parameters
+    ----------
+    file : str
+        File containing the wishlist.
+
+    Returns
+    -------
+    guide_ids : List[str]
+        List of guide IDs from the wishlist.
+    gene_names : List[str]
+        List of gene names from the wishlist.
+    """
+    assert file.endswith(".txt"), "Wishlist file must be a .txt file."
+    guide_ids, gene_names = [], []
+    with open(file) as f:
+        for line in f:
+            item = line.strip()
+            if "_" in item:  # Assume guide IDs contain underscores
+                guide_ids.append(item)
+            elif item:  # Non-empty lines without underscores are gene names
+                gene_names.append(item)
+    return guide_ids, gene_names
+
+
 def read_gene_list(file: str) -> List[str]:
     """
     This function reads in gene names from a text file and returns a numpy array of gene names.
@@ -62,7 +90,7 @@ def read_gene_list_pooled(file: str) -> Tuple[List[str], List[str], List[str], L
     """
     # reading in the gene list information as a DataFrame
     df = pd.read_csv(file, sep="\t", header=None)
-    assert len(df.columns) == 4, "Must run pyguide-collate on gene wishlists before pooled ordering."
+    assert len(df.columns) == 4, f"Must run pyguide-collate on gene wishlists before pooled ordering. {df}"
     genes = list(df[0].values)
     left_primers = list(df[1].values)
     right_primers = list(df[2].values)
@@ -100,27 +128,44 @@ def open_txt_database(file: str, header: bool = True) -> pd.DataFrame:
     return data_df
 
 
-def filter_database(df: pd.DataFrame, gene_list: List[str]) -> pd.DataFrame:
+def filter_database(df: pd.DataFrame,
+                    guide_ids: List[str],
+                    gene_names: List[str]) -> pd.DataFrame:
     """
-    This function filters the database.
+    Filters the database by guide IDs or gene names.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The dataframe for filtering.
-    gene_list : List[str]
-        The list of genes used for filtering.
+        The guide database dataframe.
+    guide_ids : List[str]
+        List of guide IDs to filter by.
+    gene_names : List[str]
+        List of gene names to filter by.
 
     Returns
     -------
     filtered_df : pd.DataFrame
-        The filtered dataframe.
+        Filtered dataframe.
     """
-    filtered_df = df.loc[df['gene'].isin(gene_list)]
+    if len(guide_ids) > 0:
+        filtered_df_guide = df[df['name'].isin(guide_ids)]
+        assert len(filtered_df_guide) > 0, "No guides found in database."
+    if len(gene_names) > 0:
+        filtered_df_gene = df[df['gene'].isin(gene_names)]
+        assert len(filtered_df_gene) > 0, "No genes found in database."
+    if len(guide_ids) > 0 and len(gene_names) > 0:
+        filtered_df = pd.concat((filtered_df_guide, filtered_df_gene), axis=0)
+    elif len(guide_ids) > 0:
+        filtered_df = filtered_df_guide
+    elif len(gene_names) > 0:
+        filtered_df = filtered_df_gene
+    assert len(filtered_df) > 0, "No guides or genes found in database."
     return filtered_df
 
 
-def get_guide_db(gene_list: List[str],
+def get_guide_db(guide_ids: List[str],
+                 gene_names: List[str],
                  ai_status: str,
                  organism: str) -> pd.DataFrame:
     """
@@ -128,6 +173,8 @@ def get_guide_db(gene_list: List[str],
 
     Parameters
     ----------
+    guide_ids : List[str]
+        The list of guide IDs.
     gene_list : List[str]
         The list of genes of interest.
     ai_status : str
@@ -155,14 +202,17 @@ def get_guide_db(gene_list: List[str],
         if ai_status == "i":
             file = os.path.join(file_path, "CRISPRi_v2.txt")
         elif ai_status == 'a':
-            file = os.path.join(file_path, "CRISPRa_v2.txt")
+            if len(gene_names) == 1 and gene_names[0] == 'negative_control':
+                file = os.path.join(file_path, "CRISPRi_v2.txt")
+            else:
+                file = os.path.join(file_path, "CRISPRa_v2.txt")
         else:
             raise Exception("ai status must be either a or i")
     db_df = open_txt_database(file, header=False)  # Database DataFrame
     # Adding column names to database
     db_df = db_df.rename(columns={0: 'name', 1: 'gene', 2: 'score', 3: 'seq'})
     # Filtering full database for genes of interest
-    db_df = filter_database(db_df, gene_list)
+    db_df = filter_database(db_df, guide_ids, gene_names)
     return db_df
 
 
@@ -202,7 +252,7 @@ def get_local_db(gene_list: List[str]) -> pd.DataFrame:
     # Adding gene column to local Kampmann lab database
     kl_df["gene"] = kl_df["Short Name"].apply(lambda x: x.split("_")[0])
     # Filtering local database for genes of interest
-    kl_df = filter_database(kl_df, gene_list)
+    kl_df = filter_database(kl_df, [], gene_list)
     return kl_df
 
 
@@ -791,7 +841,8 @@ def write_single_log_file(local_df: pd.DataFrame,
 
 def write_pooled_txt(collated_df: pd.DataFrame,
                      name: str,
-                     base_dir: str):
+                     base_dir: str,
+                     batch_retest: bool = False):
     """
     This function writes a text file containing the information for ordering pooled guide libraries from Agilent.
 
@@ -808,9 +859,14 @@ def write_pooled_txt(collated_df: pd.DataFrame,
     -------
     None
     """
-    date = get_current_date()
-    filename = get_unique_filename(base_dir, f"order_pooled_{name}_{date}.txt")
-    filename_2 = get_unique_filename(base_dir, f"order_pooled_{name}_{date}_info.csv")
+    if batch_retest:
+        date = get_current_date()
+        filename = get_unique_filename(base_dir, f"order_batch_retest_{name}_{date}.txt")
+        filename_2 = get_unique_filename(base_dir, f"order_batch_retest_{name}_{date}_info.csv")
+    else:
+        date = get_current_date()
+        filename = get_unique_filename(base_dir, f"order_pooled_{name}_{date}.txt")
+        filename_2 = get_unique_filename(base_dir, f"order_pooled_{name}_{date}_info.csv")
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         file = f"{base_dir}/{filename}"
         file_2 = f"{base_dir}/{filename_2}"
@@ -901,6 +957,41 @@ def write_pooled_log_file(missing_genes: List[str],
             f.write(f"{library_number}\t{left_primer}\t{right_primer}\n")
 
 
+def write_batch_retest_log_file(name, base_dir, primer_df):
+    """
+    This function is used to write a log file for batch retesting of pooled libraries.
+
+    Parameters
+    ----------
+    name : str
+        Name of user.
+    base_dir : str
+        The directory to save the log file to.
+    primer_df : pd.DataFrame
+        The data frame containing the information about primers and library numbers.
+    """
+    # Setting up Log File
+    date = get_current_date()
+    filename = get_unique_filename(base_dir, f"log_file_batch_retest_{name}_{date}.txt")
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        file = f"{base_dir}/{filename}"
+    elif platform == "win32":
+        file = f"{base_dir}\\{filename}"
+    else:
+        file = f"{base_dir}/{filename}"
+    primer_df = primer_df.drop(columns='guide_id')
+    primer_df = primer_df.drop_duplicates()
+    left_primers = list(primer_df['left_primers'].values)
+    right_primers = list(primer_df['right_primers'].values)
+    library_numbers = list(primer_df['lib_num'].values)
+
+    with open(file, 'w') as f:
+        f.write(f"This batch retest library was generated by {name} on {date} \n \n")
+        f.write(f"\nPrimer Information\n------------------\nLibrary Number\t Primer 1\tPrimer 2\n")
+        for left_primer, right_primer, library_number in zip(left_primers, right_primers, library_numbers):
+            f.write(f"{library_number}\t{left_primer}\t{right_primer}\n")
+
+
 ####################
 # MyGene Querying and Symbol Mapping Functions
 ####################
@@ -972,11 +1063,35 @@ def query_genes(symbol_list: List[str], species: str) -> Union[pd.DataFrame, Non
         return gene_df
 
 
+def get_guides_direct(guide_ids: List[str],
+                      ai_status: str,
+                      organism: str) -> pd.DataFrame:
+    """
+    This function gets guides directly from the database.
+
+    Parameters
+    ----------
+    guide_ids : List[str]
+        List of guide IDs to get from the database.
+    ai_status : str
+        Whether CRISPRi or CRISPRa.
+    organism : str
+        Whether to get guides that target the mouse or human.
+
+    Returns
+    -------
+    guide_df : pd.DataFrame
+        Data frame with the guides that were directly queried.
+    """
+    guide_df = get_guide_db(guide_ids, gene_names=[], ai_status=ai_status, organism=organism)
+    return guide_df
+
 ####################
 # Main entry point for all guide ordering
 ####################
 
-def order_guides(gene_list: List[str],
+def order_guides(guide_ids: List[str],
+                 gene_names: List[str],
                  name: str,
                  ai_status: str,
                  guides_per_gene: int,
@@ -985,14 +1100,15 @@ def order_guides(gene_list: List[str],
                  check_db: bool,
                  organism: str,
                  ntc_frac: float = 0.2,
-                 primer_df: Union[pd.DataFrame, None] = None
-                 ):
+                 primer_df: Union[pd.DataFrame, None] = None):
     """
-    This function orders guides for cloning with a one-at-a-time method.
+    Orders guides for cloning, supporting guide IDs and gene names.
 
     Parameters
     ----------
-    gene_list: List[str]
+    guide_ids: List[str]
+        List of guide IDs to order.
+    gene_names: List[str]
         Names of genes for ordering.
     name: str
         Name of individual running script.
@@ -1016,47 +1132,64 @@ def order_guides(gene_list: List[str],
     # Making all str inputs for if else statements lower case
     ai_status = ai_status.lower()
     order_format = order_format.lower()
-    assert order_format in ['arrayed', 'single', 'pooled'], "Incorrect order format entered."
+    possible_order_formats = ['arrayed', 'single', 'pooled', 'batch-retest']
+    assert order_format in possible_order_formats, f"{order_format} not in {possible_order_formats}"
     assert guides_per_gene <= 10, "No more than 10 guides per gene allowed."
 
     # Pulling in sgRNA filtered database
-    db_df = get_guide_db(gene_list, ai_status=ai_status, organism=organism)
-    assert db_df['score'].isna().sum() == 0
-
-    # Logging any genes in wishlist not found in database
-    missing_genes = [gene for gene in gene_list if gene not in set(db_df['gene'].unique())]
-    if len(missing_genes) > 0:
-        # Checking missing genes against standardized web API for known genes
-        missing_df = query_genes(missing_genes, species=organism)
-        if missing_df is not None:
-            query_map = make_query_map(missing_df)
-            alias_names = np.hstack(list(query_map.keys()))
-            symbols = np.hstack(missing_df['symbol'].values)
-            missing_filter = list(np.hstack([alias_names, symbols]))
-            missing_db_df = get_guide_db(missing_filter, ai_status=ai_status, organism=organism)
-            # ^ Returns any of aliases or symbols. So then I need to map these outputs to the original gene name
-            # that was requested by the user
-            db_df = pd.concat([missing_db_df, db_df])
-            mapped_missed_genes = [query_map.get(gene) for gene in missing_db_df['gene'].values]
-            mapped_missed_genes = [x for x in mapped_missed_genes if x is not None]
-            all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
-            missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
-            # Capturing modified queries for returning to user
-            mod_query_map = {}  # maps original query to updated name
-            for gene_name in missing_db_df['gene']:
-                if gene_name in set(list(query_map.keys())):
-                    mod_query_map[query_map[gene_name]] = gene_name
+    missing_genes = []
+    mod_query_map = None
+    if len(gene_names) > 0:
+        db_df = get_guide_db(guide_ids=[], gene_names=gene_names, ai_status=ai_status, organism=organism)
+        # Logging any genes in wishlist not found in database
+        missing_genes = [gene for gene in gene_names if gene not in set(db_df['gene'].unique())]
+        if len(missing_genes) > 0:
+            # Checking missing genes against standardized web API for known genes
+            missing_df = query_genes(missing_genes, species=organism)
+            if missing_df is not None:
+                query_map = make_query_map(missing_df)
+                alias_names = np.hstack(list(query_map.keys()))
+                symbols = np.hstack(missing_df['symbol'].values)
+                missing_filter = list(np.hstack([alias_names, symbols]))
+                missing_db_df = get_guide_db(guide_ids=[], gene_names=missing_filter, ai_status=ai_status, organism=organism)
+                # ^ Returns any of aliases or symbols. So then I need to map these outputs to the original gene name
+                # that was requested by the user
+                db_df = pd.concat([missing_db_df, db_df])
+                mapped_missed_genes = [query_map.get(gene) for gene in missing_db_df['gene'].values]
+                mapped_missed_genes = [x for x in mapped_missed_genes if x is not None]
+                all_mapped_genes = np.hstack([mapped_missed_genes, db_df['gene'].values])
+                missing_genes = [gene for gene in gene_list if gene not in all_mapped_genes]
+                # Capturing modified queries for returning to user
+                mod_query_map = {}  # maps original query to updated name
+                for gene_name in missing_db_df['gene']:
+                    if gene_name in set(list(query_map.keys())):
+                        mod_query_map[query_map[gene_name]] = gene_name
+            else:
+                mod_query_map = None
         else:
             mod_query_map = None
+        # Updating gene_list
+        gene_list = list(db_df['gene'].values)
+        assert db_df['score'].isna().sum() == 0
+
+    assert len(gene_names) > 0 or len(guide_ids) > 0, "Must provide either gene names or guide IDs for ordering."
+
+    # Adding in functionality for ordering guides by names
+    if len(gene_names) == 0:
+        collated_df = get_guides_direct(guide_ids, ai_status=ai_status, organism=organism)
+        collated_df.reset_index(drop=True)
+    elif len(guide_ids) == 0:
+        # Reading in empirical guide data
+        empirical_df = get_empirical_db()
+        # Collate guides
+        collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
+        collated_df.reset_index(drop=True)
     else:
-        mod_query_map = None
-    # Updating gene_list
-    gene_list = list(db_df['gene'].values)
-    assert db_df['score'].isna().sum() == 0
-    # Reading in empirical guide data
-    empirical_df = get_empirical_db()
-    # Collate guides
-    collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
+        guide_only_df = get_guides_direct(guide_ids, ai_status, organism)
+        empirical_df = get_empirical_db()
+        collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
+        collated_df = pd.concat([collated_df, guide_only_df], axis=0)
+        collated_df.reset_index(drop=True)
 
     # Single Guide Ordering
     if order_format == "single":
@@ -1120,7 +1253,7 @@ def order_guides(gene_list: List[str],
         # Adding in negative controls to pooled libraries
         unique_library_info = primer_df.loc[:, ['left_primers', 'right_primers', 'lib_num']].drop_duplicates()
         unique_library_info = unique_library_info.reset_index(drop=True)
-        ntc_db = get_guide_db(['negative_control'], ai_status='i', organism=organism)
+        ntc_db = get_guide_db([], ['negative_control'], ai_status=ai_status, organism=organism)
         ntc_sets = {}
 
         # Iterating through the libraries for ordering and generating NTCs
@@ -1129,7 +1262,7 @@ def order_guides(gene_list: List[str],
             num_ntc = int(ntc_frac * primer_df.loc[primer_df['lib_num'] == library_number].shape[0])
             if num_ntc <= 2:
                 num_ntc = 2
-            assert num_ntc >= 2, f" {num_ntc_float} Must have at least one non-targeting control when ordering pooled libraries."
+            assert num_ntc >= 2, f"{num_ntc} Must have at least one non-targeting control when ordering pooled libraries."
             ntc_df = collate_ntcs(num_ntc=num_ntc, db=ntc_db)
             ntc_df['gene_symbol'] = ntc_df['gene']
             ntc_df = ntc_df.reset_index(drop=True)
@@ -1146,6 +1279,24 @@ def order_guides(gene_list: List[str],
         # Writing the pooled ordering txt file
         write_pooled_txt(collated_df, name, base_dir)
         write_pooled_log_file(missing_genes, mod_query_map, name, base_dir, primer_df)
+    
+    # Batch retest
+    elif order_format == "batch-retest":
+        collated_df = collated_df.merge(primer_df, left_on='name', right_on='guide_id')
+        ntc_db = get_guide_db([], ['negative_control'], ai_status=ai_status, organism=organism)
+        num_ntc = int(ntc_frac * len(primer_df))
+        if num_ntc < 1:
+            print(f"Not including any NTCs based on ntc_frac provided...")
+        ntc_df = collate_ntcs(num_ntc=num_ntc, db=ntc_db)
+        ntc_df = ntc_df.reset_index(drop=True)
+        ntc_df['guide_id'] = ntc_df['gene']
+        for_concat = pd.DataFrame({'left_primers': [primer_df['left_primers'].values[0]]*len(ntc_df),
+                                      'right_primers': [primer_df['right_primers'].values[0]]*len(ntc_df),
+                                      'lib_num': [primer_df['lib_num'].values[0]]*len(ntc_df)})
+        ntc_df = pd.concat([ntc_df, for_concat], axis=1)
+        collated_df = pd.concat([collated_df, ntc_df], axis=0)
+        write_pooled_txt(collated_df, name, base_dir, batch_retest=True)
+        write_batch_retest_log_file(name, base_dir, primer_df)
 
 
 def main():
@@ -1181,21 +1332,26 @@ def main():
                         default=0.2,
                         help="The ratio of your library to order as NTCs: 0.2 equates to 20 percent the length of the library."
                         )
-    parser.add_argument("--batch_retest",
-                        action="store_true",
-                        help="Pass this flag when wishlist contains individual guides for reordering")
     args = parser.parse_args()
     # Reading wishlist genes into list
     file = args.wishlist_file
 
     if args.order_format.lower() == "pooled":
         gene_list, left_primers, right_primers, lib_num = read_gene_list_pooled(file=file)
+        guide_list = []
         primer_df = pd.DataFrame({'gene_symbol': gene_list,
                                   'left_primers': left_primers,
                                   'right_primers': right_primers,
                                   'lib_num': lib_num})
+    elif args.order_format.lower() == "batch-retest":
+        guide_list, left_primers, right_primers, lib_num = read_gene_list_pooled(file=file)
+        gene_list = []
+        primer_df = pd.DataFrame({'guide_id': guide_list,
+                                  'left_primers': left_primers,
+                                  'right_primers': right_primers,
+                                  'lib_num': lib_num})
     else:
-        gene_list = read_gene_list(file=file)
+        guide_list, gene_list = read_wishlist(file=file)
         primer_df = None
     # Defining organism
     organism_name = args.organism
@@ -1208,11 +1364,15 @@ def main():
     else:
         raise Exception("Operating system not recognized.")
     # Writing csv files for ordering guides
-    assert args.order_format in ["single", "pooled", "arrayed"], "Only single, pooled, or arrayed order formats."
-    if args.order_format == "pooled":
-        assert primer_df is not None, "You must run pyguide-collate and generate primers for pooled ordering."
+    assert args.order_format in ["single", "pooled", "arrayed", "batch-retest"], "Only single, pooled, batch-retest, or arrayed order formats."
+    if args.order_format == "pooled" or args.order_format == "batch-retest":
+        if args.order_format == "pooled" or args.order_format == "batch-retest":
+            assert primer_df is not None, "You must run pyguide-collate and generate primers for pooled ordering."
+        else:
+            assert primer_df is not None, "You must run pyguide-batch-retest and generate primers for pooled ordering."
         ntc_frac = args.ntc_frac
-        order_guides(gene_list,
+        order_guides(guide_list,
+                     gene_list,
                      name=args.name,
                      ai_status=args.ai,
                      guides_per_gene=args.guides_per_gene,
@@ -1223,7 +1383,8 @@ def main():
                      primer_df=primer_df,
                      ntc_frac=ntc_frac)
     else:
-        order_guides(gene_list,
+        order_guides(guide_list,
+                     gene_list,
                      name=args.name,
                      ai_status=args.ai,
                      guides_per_gene=args.guides_per_gene,

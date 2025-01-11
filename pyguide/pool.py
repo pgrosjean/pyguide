@@ -5,14 +5,12 @@ from datetime import datetime
 from typing import List, Tuple
 from sys import platform
 from argparse import ArgumentParser
-from pyguide.guide import get_unique_filename, read_gene_list
+from pyguide.guide import get_unique_filename, read_gene_list, read_wishlist
 
 
 ####################
 # Defining Functions
 ####################
-
-## TODO: Expand the number of pooled primers that can be used
 
 def generate_pooled_list(file_list: List[str],
                          primer_list: List[Tuple[str, str]]):

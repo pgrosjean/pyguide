@@ -188,12 +188,10 @@ def main():
         file_path = os.path.join(file_path, '..', 'data')
         file = os.path.join(file_path, "human_sgrnas.txt")
         df = pd.read_csv(file)
-
     else:
         with open(log_file_name, "w") as f:
             for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
                 f.write(f"{file} \t {guide_id}\n")
-        # # Opening Database
 
 
 

@@ -28,7 +28,8 @@ def test_pooled_order_i():
                                     'right_primers': rpm,
                                     'lib_num': lnm})
     assert gene_list[0] == "STAT3"
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -37,7 +38,8 @@ def test_pooled_order_i():
                        check_db=True,
                        organism="human",
                        primer_df=primer_df)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -46,7 +48,8 @@ def test_pooled_order_i():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -55,7 +58,8 @@ def test_pooled_order_i():
                        check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -87,7 +91,8 @@ def test_pooled_order_a():
     file_path_2 = os.path.join(file_path_1, "example", "gene_list.txt")
     gene_list = guide.read_gene_list(file_path_2)
     assert gene_list[0] == "STAT3"
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -96,7 +101,8 @@ def test_pooled_order_a():
                        check_db=True,
                        organism="human",
                        primer_df=primer_df)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -105,7 +111,8 @@ def test_pooled_order_a():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -114,7 +121,8 @@ def test_pooled_order_a():
                        check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
-    guide.order_guides(glm,
+    guide.order_guides([],
+                       glm,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
