@@ -9,7 +9,8 @@ def test_single_i():
     gene_list = guide.read_gene_list(file_path_2)
     gene_list_mouse = guide.read_gene_list(file_path_mouse)
     assert gene_list[0] == "STAT3"
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -17,7 +18,8 @@ def test_single_i():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        check_db=True)
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -25,7 +27,8 @@ def test_single_i():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        check_db=False)
-    guide.order_guides(gene_list_mouse,
+    guide.order_guides([],
+                       gene_list_mouse,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -33,7 +36,8 @@ def test_single_i():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
                        check_db=True)
-    guide.order_guides(gene_list_mouse,
+    guide.order_guides([],
+                       gene_list_mouse,
                        name="Test",
                        ai_status="i",
                        guides_per_gene=5,
@@ -50,7 +54,8 @@ def test_single_a():
     gene_list = guide.read_gene_list(file_path_2)
     gene_list_mouse = guide.read_gene_list(file_path_mouse)
     assert gene_list[0] == "STAT3"
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -58,7 +63,8 @@ def test_single_a():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        check_db=True)
-    guide.order_guides(gene_list,
+    guide.order_guides([],
+                       gene_list,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -66,7 +72,8 @@ def test_single_a():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="human",
                        check_db=False)
-    guide.order_guides(gene_list_mouse,
+    guide.order_guides([],
+                       gene_list_mouse,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
@@ -74,7 +81,8 @@ def test_single_a():
                        base_dir=os.path.join(file_path_1, "example"),
                        organism="mouse",
                        check_db=True)
-    guide.order_guides(gene_list_mouse,
+    guide.order_guides([],
+                       gene_list_mouse,
                        name="Test",
                        ai_status="a",
                        guides_per_gene=5,
