@@ -7,6 +7,7 @@ setup(
     python_requires=">=3.9.0",
     install_requires=["pandas>=1.4.1",
                       "numpy>=1.22.2",
+                      "biothings-client==0.2.6",
                       "setuptools>=57.4.0",
                       "mygene>=3.2.2"],
     extras_require={
