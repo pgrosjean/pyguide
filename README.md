@@ -12,6 +12,7 @@
 git clone https://github.com/pgrosjean/pyguide.git
 cd pyguide
 pip install -e .
+pip install streamlit
 ```
 
 # Usage (Streamlit App)
