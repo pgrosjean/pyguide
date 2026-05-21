@@ -451,7 +451,7 @@ def filter_cloned_guides(collated_df: pd.DataFrame,
         The filtered data frame.
     """
     filtered_df = collated_df.copy()
-    filtered_df = filtered_df.sort_values('score', ascending=False).sort_values('gene')
+    filtered_df = filtered_df.sort_values('score', ascending=False).sort_values('gene').reset_index(drop=True)
     # Setting up boolean indexing vector
     bool_ind = np.ones(filtered_df.shape[0])
     # Changing boolean indexing vector to account for already cloned guides
