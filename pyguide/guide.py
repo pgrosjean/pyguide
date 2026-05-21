@@ -1010,9 +1010,9 @@ def make_query_map(query_df: pd.DataFrame) -> Dict[str, str]:
     """
     query_map = {}
     for query, symbol, alias in zip(query_df.index, query_df['symbol'].values, query_df['alias'].values):
-        if type(alias) != float:
-            if type(alias) != list:
-                alias = list(alias)
+        if pd.notna(alias):
+            if not isinstance(alias, list):
+                alias = [alias]
             query_map[symbol] = query
             for al in alias:
                 query_map[al] = query
