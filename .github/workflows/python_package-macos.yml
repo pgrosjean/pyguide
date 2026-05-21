@@ -1,40 +1,25 @@
-# MACOS Build Test
+name: uv + Pytest (macOS)
 
-name: Conda Setup + Pytest (MacOS)
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: macos-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # Running python setup
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
+          python-version: "3.12"
+
       - name: Install dependencies
-        run: |
-          # install pyguide 
-          pip install -e ".[dev]"
-      # Running pytest
+        run: uv sync --extra dev
+
       - name: Test with pytest
-        run: |
-          pytest -v
+        run: uv run pytest -v
