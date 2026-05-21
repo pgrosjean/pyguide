@@ -148,6 +148,8 @@ def filter_database(df: pd.DataFrame,
     filtered_df : pd.DataFrame
         Filtered dataframe.
     """
+    if len(guide_ids) == 0 and len(gene_names) == 0:
+        return df.iloc[0:0]
     if len(guide_ids) > 0:
         filtered_df_guide = df[df['name'].isin(guide_ids)]
     if len(gene_names) > 0:
