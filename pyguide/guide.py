@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import math
 from typing import List, Dict, Tuple, Union
 from argparse import ArgumentParser
 from datetime import datetime
@@ -549,7 +550,7 @@ def split_dataframe(df: pd.DataFrame,
         Chunked data frame
     """
     chunks = list()
-    num_chunks = len(df) // chunk_size + 1
+    num_chunks = math.ceil(len(df) / chunk_size)
     for i in range(num_chunks):
         chunks.append(df[i * chunk_size:(i + 1) * chunk_size])
     return chunks
