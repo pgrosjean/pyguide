@@ -6,10 +6,14 @@ build-backend = "hatchling.build"
 name = "pyguide"
 version = "0.1.1"
 requires-python = ">=3.12"
+description = "Tools for CRISPRi/a gRNA work"
+license = { text = "MIT" }
+authors = [
+    { name = "Parker Grosjean", email = "parker.grosjean@gmail.com" },
+]
 dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.26.0",
-    "biothings-client>=0.2.6",
     "mygene>=3.2.2",
 ]
 
@@ -17,10 +21,10 @@ dependencies = [
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-pyguide-order        = "pyguide.guide:main"
-pyguide-collate      = "pyguide.pool:main"
+pyguide-order = "pyguide.guide:main"
+pyguide-collate = "pyguide.pool:main"
 pyguide-batch-retest = "pyguide.batch_retest:main"
-pyguide-check-seq    = "pyguide.check_seq:main"
+pyguide-check-seq = "pyguide.check_seq:main"
 
 [project.urls]
 Homepage = "https://github.com/pgrosjean/pyguide"
