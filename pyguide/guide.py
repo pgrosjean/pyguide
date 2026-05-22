@@ -1139,6 +1139,7 @@ def order_guides(guide_ids: List[str],
     # Pulling in sgRNA filtered database
     missing_genes = []
     mod_query_map = None
+    gene_list = []
     if len(gene_names) > 0:
         db_df = get_guide_db(guide_ids=[], gene_names=gene_names, ai_status=ai_status, organism=organism)
         # Logging any genes in wishlist not found in database
@@ -1177,19 +1178,19 @@ def order_guides(guide_ids: List[str],
     # Adding in functionality for ordering guides by names
     if len(gene_names) == 0:
         collated_df = get_guides_direct(guide_ids, ai_status=ai_status, organism=organism)
-        collated_df.reset_index(drop=True)
+        collated_df = collated_df.reset_index(drop=True)
     elif len(guide_ids) == 0:
         # Reading in empirical guide data
         empirical_df = get_empirical_db()
         # Collate guides
         collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
-        collated_df.reset_index(drop=True)
+        collated_df = collated_df.reset_index(drop=True)
     else:
         guide_only_df = get_guides_direct(guide_ids, ai_status, organism)
         empirical_df = get_empirical_db()
         collated_df = collate_guides_empirical(guides_per_gene, db_df, empirical_df)
         collated_df = pd.concat([collated_df, guide_only_df], axis=0)
-        collated_df.reset_index(drop=True)
+        collated_df = collated_df.reset_index(drop=True)
 
     # Single Guide Ordering
     if order_format == "single":
