@@ -1367,10 +1367,7 @@ def main():
     # Writing csv files for ordering guides
     assert args.order_format in ["single", "pooled", "arrayed", "batch-retest"], "Only single, pooled, batch-retest, or arrayed order formats."
     if args.order_format == "pooled" or args.order_format == "batch-retest":
-        if args.order_format == "pooled" or args.order_format == "batch-retest":
-            assert primer_df is not None, "You must run pyguide-collate and generate primers for pooled ordering."
-        else:
-            assert primer_df is not None, "You must run pyguide-batch-retest and generate primers for pooled ordering."
+        assert primer_df is not None, "You must run pyguide-collate (or pyguide-batch-retest) and generate primers before pooled ordering."
         ntc_frac = args.ntc_frac
         order_guides(guide_list,
                      gene_list,
