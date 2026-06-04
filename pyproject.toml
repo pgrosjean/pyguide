@@ -19,6 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+app = ["streamlit"]
 
 [project.scripts]
 pyguide-order = "pyguide.guide:main"
