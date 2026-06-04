@@ -47,3 +47,20 @@ def test_read_gene_list_pooled_seq(tmp_path):
     assert lefts == ['LEFT1', 'LEFT1']
     assert rights == ['RIGHT1', 'RIGHT1']
     assert lib_nums == [0, 0]
+
+
+def test_write_pooled_seq_log_file(tmp_path):
+    primer_df = pd.DataFrame({
+        'guide_id': ['G1', 'G2'],
+        'seq': ['ACGTACGTACGTACGTACGT', 'TGCATGCATGCATGCATGCA'],
+        'left_primers': ['LEFTSEQ', 'LEFTSEQ'],
+        'right_primers': ['RIGHTSEQ', 'RIGHTSEQ'],
+        'lib_num': [0, 0],
+    })
+    guide.write_pooled_seq_log_file("TestUser", str(tmp_path), primer_df)
+    log_files = list(tmp_path.glob("log_file_pooled_seq_TestUser_*.txt"))
+    assert len(log_files) == 1
+    content = log_files[0].read_text()
+    assert "TestUser" in content
+    assert "LEFTSEQ" in content
+    assert "RIGHTSEQ" in content
