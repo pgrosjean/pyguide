@@ -1,10 +1,11 @@
 from pyguide import guide, pool
 import pandas as pd
 import os
+import glob
 
 
 def test_pooled_order_i():
-    file_path_1 = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path_1 = os.path.dirname(os.path.abspath(__file__))
     file_path_2 = os.path.join(file_path_1, "example", "gene_list.txt")
     file_path_3 = os.path.join(file_path_1, "example", "gene_list_2.txt")
     file_path_4 = os.path.join(file_path_1, "example", "test_primer_file.txt")
@@ -38,6 +39,12 @@ def test_pooled_order_i():
                        check_db=True,
                        organism="human",
                        primer_df=primer_df)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -48,6 +55,12 @@ def test_pooled_order_i():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -58,6 +71,12 @@ def test_pooled_order_i():
                        check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -68,10 +87,16 @@ def test_pooled_order_i():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
 
 
 def test_pooled_order_a():
-    file_path_1 = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path_1 = os.path.dirname(os.path.abspath(__file__))
     file_path_5 = os.path.join(file_path_1, "example", "collated_pooled_wish_list_test.txt")
     file_path_mouse_2 = os.path.join(file_path_1, "example", "collated_pooled_wish_list_test_mouse.txt")
 
@@ -87,7 +112,7 @@ def test_pooled_order_a():
                                     'right_primers': rpm,
                                     'lib_num': lnm})
 
-    file_path_1 = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    file_path_1 = os.path.dirname(os.path.abspath(__file__))
     file_path_2 = os.path.join(file_path_1, "example", "gene_list.txt")
     gene_list = guide.read_gene_list(file_path_2)
     assert gene_list[0] == "STAT3"
@@ -101,6 +126,12 @@ def test_pooled_order_a():
                        check_db=True,
                        organism="human",
                        primer_df=primer_df)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -111,6 +142,12 @@ def test_pooled_order_a():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -121,6 +158,12 @@ def test_pooled_order_a():
                        check_db=False,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
     guide.order_guides([],
                        glm,
                        name="Test",
@@ -131,3 +174,58 @@ def test_pooled_order_a():
                        check_db=True,
                        organism="mouse",
                        primer_df=primer_df_mouse)
+    pooled_files = glob.glob(os.path.join(file_path_1, "example", "order_pooled_Test_*.txt"))
+    assert len(pooled_files) >= 1, "order_guides(pooled) produced no output TXT"
+    for f in pooled_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_pooled_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_pooled_*Test_*.txt")):
+        os.remove(f)
+
+
+from pyguide import batch_retest
+
+
+def test_batch_retest_order_i():
+    file_path_1 = os.path.dirname(os.path.abspath(__file__))
+    guide_list_file = os.path.join(file_path_1, "example", "batch_retest_guide_list.txt")
+
+    # Step 1: generate the collated batch-retest wishlist
+    batch_retest.main(["--wishlist_file", guide_list_file])
+
+    # Step 2: find the generated wishlist file
+    generated = glob.glob(os.path.join(file_path_1, "example", "batch_retest_wishlist_*.txt"))
+    assert len(generated) >= 1, "batch_retest.main() produced no wishlist file"
+    br_wishlist = generated[0]
+
+    # Step 3: use it to order guides
+    guide_list, left_primers, right_primers, lib_num = guide.read_gene_list_pooled(file=br_wishlist)
+    primer_df = pd.DataFrame({
+        'guide_id': guide_list,
+        'left_primers': left_primers,
+        'right_primers': right_primers,
+        'lib_num': lib_num,
+    })
+    guide.order_guides(
+        guide_ids=guide_list,
+        gene_names=[],
+        name="Test",
+        ai_status="i",
+        guides_per_gene=5,
+        order_format="batch-retest",
+        base_dir=os.path.join(file_path_1, "example"),
+        check_db=False,
+        organism="human",
+        primer_df=primer_df,
+    )
+
+    # Step 4: verify output
+    order_files = glob.glob(os.path.join(file_path_1, "example", "order_batch_retest_Test_*.txt"))
+    assert len(order_files) >= 1, "order_guides(batch-retest) produced no output TXT"
+
+    # Cleanup
+    for f in order_files \
+            + glob.glob(os.path.join(file_path_1, "example", "order_batch_retest_*_info.csv")) \
+            + glob.glob(os.path.join(file_path_1, "example", "log_file_batch_retest_*Test_*.txt")) \
+            + [br_wishlist]:
+        if os.path.exists(f):
+            os.remove(f)
