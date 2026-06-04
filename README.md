@@ -8,12 +8,24 @@
 **Overview**: Tools for ordering gRNA and maintaining gRNA libraries for CRISPRi/a work. All functionalities assume that you are ordering guides for use in the pMK1334 plasmid (which you can request from the Kampmann Lab) and that you are using gRNAs from the libraries defined in the [Horlbeck et al 2016 paper](https://elifesciences.org/articles/19760#content).
 
 # Installation
+
+**Requirements:** Python 3.12+, [uv](https://docs.astral.sh/uv/)
+
 ```bash
 git clone https://github.com/pgrosjean/pyguide.git
 cd pyguide
-pip install -e .
-pip install streamlit
+uv sync
 ```
+
+To install with development dependencies (for running tests):
+```bash
+uv sync --extra dev
+```
+
+> **Streamlit app**: Install streamlit separately if you want to use the web UI:
+> ```bash
+> uv pip install streamlit
+> ```
 
 # Usage (Streamlit App)
 
