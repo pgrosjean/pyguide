@@ -1182,9 +1182,24 @@ def order_guides(guide_ids: List[str],
     # Making all str inputs for if else statements lower case
     ai_status = ai_status.lower()
     order_format = order_format.lower()
-    possible_order_formats = ['arrayed', 'single', 'pooled', 'batch-retest']
+    possible_order_formats = ['arrayed', 'single', 'pooled', 'batch-retest', 'pooled-seq']
     assert order_format in possible_order_formats, f"{order_format} not in {possible_order_formats}"
     assert guides_per_gene <= 10, "No more than 10 guides per gene allowed."
+
+    if order_format == "pooled-seq":
+        assert primer_df is not None, \
+            "You must run pyguide-collate-seq and provide the collated file before pooled-seq ordering."
+        collated_df = pd.DataFrame({
+            'name': primer_df['guide_id'].values,
+            'seq': primer_df['seq'].values,
+            'left_primers': primer_df['left_primers'].values,
+            'right_primers': primer_df['right_primers'].values,
+            'lib_num': primer_df['lib_num'].values,
+            'gene': primer_df['guide_id'].values,
+        })
+        write_pooled_txt(collated_df, name, base_dir)
+        write_pooled_seq_log_file(name, base_dir, primer_df)
+        return
 
     # Pulling in sgRNA filtered database
     missing_genes = []
@@ -1401,6 +1416,17 @@ def main():
                                   'left_primers': left_primers,
                                   'right_primers': right_primers,
                                   'lib_num': lib_num})
+    elif args.order_format.lower() == "pooled-seq":
+        name_list, seq_list, left_primers, right_primers, lib_num = read_gene_list_pooled_seq(file=file)
+        guide_list = []
+        gene_list = []
+        primer_df = pd.DataFrame({
+            'guide_id': name_list,
+            'seq': seq_list,
+            'left_primers': left_primers,
+            'right_primers': right_primers,
+            'lib_num': lib_num,
+        })
     else:
         guide_list, gene_list = read_wishlist(file=file)
         primer_df = None
@@ -1415,9 +1441,11 @@ def main():
     else:
         raise Exception("Operating system not recognized.")
     # Writing csv files for ordering guides
-    assert args.order_format in ["single", "pooled", "arrayed", "batch-retest"], "Only single, pooled, batch-retest, or arrayed order formats."
-    if args.order_format == "pooled" or args.order_format == "batch-retest":
-        assert primer_df is not None, "You must run pyguide-collate (or pyguide-batch-retest) and generate primers before pooled ordering."
+    assert args.order_format in ["single", "pooled", "pooled-seq", "arrayed", "batch-retest"], \
+        "Only single, pooled, pooled-seq, arrayed, or batch-retest order formats."
+    if args.order_format in ("pooled", "batch-retest", "pooled-seq"):
+        assert primer_df is not None, \
+            "You must run pyguide-collate (or pyguide-collate-seq or pyguide-batch-retest) before pooled ordering."
         ntc_frac = args.ntc_frac
         order_guides(guide_list,
                      gene_list,
