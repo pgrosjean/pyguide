@@ -43,7 +43,7 @@ def generate_pooled_list(file_list: List[str],
     date = now.strftime("%y_%m_%d")
     file_name = f"collated_pooled_wish_list_{date}.txt"
     file_name = get_unique_filename(base_dir, file_name)
-    file = f"{base_dir}/{file_name}"
+    file = os.path.join(base_dir, file_name)
     with open(file, 'w') as new_file:
         lib_num = 0
         for gene_file, primer_tuple in zip(file_list, primer_list):
