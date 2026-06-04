@@ -64,3 +64,57 @@ def test_write_pooled_seq_log_file(tmp_path):
     assert "TestUser" in content
     assert "LEFTSEQ" in content
     assert "RIGHTSEQ" in content
+
+
+def test_collate_seq_and_order():
+    file_path_1 = os.path.dirname(os.path.abspath(__file__))
+    seq_file = os.path.join(file_path_1, "example", "seq_guide_list.txt")
+    example_dir = os.path.join(file_path_1, "example")
+
+    try:
+        # Step 1: collate
+        collate_seq.main(["--sequence_files", seq_file])
+        collated = glob.glob(os.path.join(example_dir, "collated_seq_wishlist_*.txt"))
+        assert len(collated) >= 1, "collate_seq produced no collated file"
+        collated_file = sorted(collated, key=os.path.getmtime)[-1]
+
+        # Step 2: read collated file and build primer_df
+        names, seqs, left_primers, right_primers, lib_nums = guide.read_gene_list_pooled_seq(collated_file)
+        primer_df = pd.DataFrame({
+            'guide_id': names,
+            'seq': seqs,
+            'left_primers': left_primers,
+            'right_primers': right_primers,
+            'lib_num': lib_nums,
+        })
+
+        # Step 3: order
+        guide.order_guides(
+            guide_ids=[],
+            gene_names=[],
+            name="Test",
+            ai_status="i",
+            guides_per_gene=5,
+            order_format="pooled-seq",
+            base_dir=example_dir,
+            check_db=False,
+            organism="human",
+            primer_df=primer_df,
+        )
+
+        # Step 4: verify output file exists and has content
+        order_files = glob.glob(os.path.join(example_dir, "order_pooled_Test_*.txt"))
+        assert len(order_files) >= 1, "order_guides(pooled-seq) produced no output TXT"
+        with open(sorted(order_files, key=os.path.getmtime)[-1]) as fh:
+            lines = [l for l in fh.readlines() if l.strip()]
+        assert len(lines) >= 6, f"Expected at least 6 lines (2 per guide x 3 guides), got {len(lines)}"
+
+    finally:
+        for f in (
+            glob.glob(os.path.join(example_dir, "order_pooled_Test_*.txt"))
+            + glob.glob(os.path.join(example_dir, "order_pooled_Test_*_info.csv"))
+            + glob.glob(os.path.join(example_dir, "log_file_pooled_seq_Test_*.txt"))
+            + glob.glob(os.path.join(example_dir, "collated_seq_wishlist_*.txt"))
+        ):
+            if os.path.exists(f):
+                os.remove(f)
