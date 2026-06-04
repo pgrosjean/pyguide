@@ -20,9 +20,10 @@ def test_check_seq():
 
 def test_check_seq_crispra():
     file_path_1 = os.path.dirname(os.path.abspath(__file__))
-    file_path_2 = os.path.join(file_path_1, "example", "seq_files")
+    file_path_2 = os.path.join(file_path_1, "example", "seq_files_crispra")
     collated_files = check_seq.collate_files(file_path_2, ".seq")
     # Running with CRISPRa database should not raise
     guide_ids = check_seq.check_seq(collated_files, "human", "a")
     assert guide_ids is not None
     assert len(guide_ids) == len(collated_files)
+    assert any(g is not None for g in guide_ids), "CRISPRa check_seq returned all None — lookup may be broken"
