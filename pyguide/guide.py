@@ -99,6 +99,30 @@ def read_gene_list_pooled(file: str) -> Tuple[List[str], List[str], List[str], L
     return genes, left_primers, right_primers, lib_num
 
 
+def read_gene_list_pooled_seq(file: str) -> tuple:
+    """
+    Reads a 5-column collated sequence wishlist file produced by pyguide-collate-seq.
+
+    Parameters
+    ----------
+    file : str
+        Path to the collated file (name, seq, left_primer, right_primer, lib_num).
+
+    Returns
+    -------
+    names, seqs, left_primers, right_primers, lib_nums
+    """
+    df = pd.read_csv(file, sep="\t", header=None)
+    assert len(df.columns) == 5, \
+        f"Expected 5-column file from pyguide-collate-seq. Got {len(df.columns)} columns. {df}"
+    names = list(df[0].values)
+    seqs = list(df[1].values)
+    left_primers = list(df[2].values)
+    right_primers = list(df[3].values)
+    lib_nums = list(df[4].values)
+    return names, seqs, left_primers, right_primers, lib_nums
+
+
 ####################
 # Checking Database Functionality
 ####################

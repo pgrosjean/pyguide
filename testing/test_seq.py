@@ -33,3 +33,17 @@ def test_validate_sequences_duplicate_names(tmp_path):
     f.write_text("GUIDE_1\tACGTACGTACGTACGTACGT\nGUIDE_1\tTGCATGCATGCATGCATGCA\n")
     with pytest.raises(SystemExit):
         collate_seq.validate_sequence_file(str(f))
+
+
+def test_read_gene_list_pooled_seq(tmp_path):
+    f = tmp_path / "collated.txt"
+    f.write_text(
+        "GUIDE_A\tACGTACGTACGTACGTACGT\tLEFT1\tRIGHT1\t0\n"
+        "GUIDE_B\tTGCATGCATGCATGCATGCA\tLEFT1\tRIGHT1\t0\n"
+    )
+    names, seqs, lefts, rights, lib_nums = guide.read_gene_list_pooled_seq(str(f))
+    assert names == ['GUIDE_A', 'GUIDE_B']
+    assert seqs == ['ACGTACGTACGTACGTACGT', 'TGCATGCATGCATGCATGCA']
+    assert lefts == ['LEFT1', 'LEFT1']
+    assert rights == ['RIGHT1', 'RIGHT1']
+    assert lib_nums == [0, 0]
