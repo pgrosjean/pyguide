@@ -23,6 +23,7 @@ dev = ["pytest>=7.0"]
 [project.scripts]
 pyguide-order = "pyguide.guide:main"
 pyguide-collate = "pyguide.pool:main"
+pyguide-collate-seq = "pyguide.collate_seq:main"
 pyguide-batch-retest = "pyguide.batch_retest:main"
 pyguide-check-seq = "pyguide.check_seq:main"
 
