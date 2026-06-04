@@ -8,21 +8,43 @@
 **Overview**: Tools for ordering gRNA and maintaining gRNA libraries for CRISPRi/a work. All functionalities assume that you are ordering guides for use in the pMK1334 plasmid (which you can request from the Kampmann Lab) and that you are using gRNAs from the libraries defined in the [Horlbeck et al 2016 paper](https://elifesciences.org/articles/19760#content).
 
 # Installation
+
+**Requirements:** Python 3.12+, [uv](https://docs.astral.sh/uv/)
+
 ```bash
 git clone https://github.com/pgrosjean/pyguide.git
 cd pyguide
-pip install -e .
-pip install streamlit
+```
+
+**CLI only** (lighter install — all four `pyguide-*` commands):
+```bash
+uv sync
+```
+
+**Streamlit app** (includes the web UI):
+```bash
+uv sync --extra app
+```
+
+**Development** (CLI + tests):
+```bash
+uv sync --extra dev
+```
+
+**Everything** (CLI + app + tests):
+```bash
+uv sync --extra app --extra dev
 ```
 
 # Usage (Streamlit App)
 
 ## Using the Streamlit App
+
 ```bash
-cd pyguide
-streamlit run app.py
+uv run streamlit run pyguide/app.py
 ```
-Wishlist files are .txt files with either Gene Symbols (e.g. APOE) or sgRNA names (e.g. BIRC7_+_61867189.23-P1P2) from the libraries found in /data/
+
+The app supports all order formats available from the CLI. Wishlist files are `.txt` files containing either Gene Symbols (e.g. `APOE`) or sgRNA names (e.g. `BIRC7_+_61867189.23-P1P2`) from the libraries in `/data/`. For the **pooled-seq** format, upload tab-delimited sequence files (`name<TAB>20nt spacer`) instead.
 
 
 # Usage (CLI)

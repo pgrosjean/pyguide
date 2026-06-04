@@ -180,18 +180,16 @@ def main():
     log_file_name = f"log_check_seq_{date}.txt"
     log_file_name = os.path.join(file_dir, get_unique_filename(args.file_dir, log_file_name))
 
+    with open(log_file_name, "w") as f:
+        for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
+            f.write(f"{file} \t {guide_id}\n")
 
-    # Modifying Database
-    # This involves opening the human sgrnas and assigning a new number to the
     if args.update_db:
         file_path = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         file_path = os.path.join(file_path, '..', 'data')
-        file = os.path.join(file_path, "human_sgrnas.txt")
-        df = pd.read_csv(file)
-    else:
-        with open(log_file_name, "w") as f:
-            for file, guide_id in sorted(list(zip(file_list, list(guide_id_arr))), key=lambda x: x[1]):
-                f.write(f"{file} \t {guide_id}\n")
+        db_file = os.path.join(file_path, "human_sgrnas.txt")
+        df = pd.read_csv(db_file, sep="\t")
+        # TODO: implement database update logic (assign new guide numbers)
 
 
 

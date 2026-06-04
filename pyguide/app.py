@@ -22,7 +22,7 @@ def main():
     st.sidebar.header("Configuration")
     order_format = st.sidebar.selectbox(
         "Order Format",
-        ["single", "arrayed", "pooled", "batch-retest"]
+        ["single", "arrayed", "pooled", "pooled-seq", "batch-retest"]
     )
     user_name = st.sidebar.text_input("User Name", value="JohnDoe")
     ai_status = st.sidebar.selectbox("CRISPR Type", ["i", "a"])  # CRISPRi or CRISPRa
@@ -60,6 +60,19 @@ def main():
         )
         if wfs:
             wishlist_files = list(wfs)
+
+        primer_file = st.file_uploader(
+            "Optional primer file (txt/csv/tsv). If omitted, a default is used.",
+            type=["txt", "csv", "tsv"]
+        )
+    elif order_format == "pooled-seq":
+        seq_files = st.file_uploader(
+            "Upload one or more tab-delimited sequence files (name<TAB>20nt spacer), one per library",
+            type=["txt"],
+            accept_multiple_files=True
+        )
+        if seq_files:
+            wishlist_files = list(seq_files)
 
         primer_file = st.file_uploader(
             "Optional primer file (txt/csv/tsv). If omitted, a default is used.",
@@ -154,6 +167,44 @@ def main():
             st.info(f"Running Order: `{' '.join(cmd_order)}`")
             run_cli_command(cmd_order)
             st.success("Done ordering (pooled).")
+
+        elif order_format == "pooled-seq":
+            if not wishlist_files:
+                st.error("Please upload one or more sequence files.")
+                return
+
+            seq_paths = [save_uploaded_file(f, tmpdir) for f in wishlist_files]
+
+            primer_path = ""
+            if primer_file:
+                primer_path = save_uploaded_file(primer_file, tmpdir)
+
+            cmd_collate = ["pyguide-collate-seq", "--sequence_files"] + seq_paths
+            if primer_path:
+                cmd_collate += ["--primer_file", primer_path]
+
+            st.info(f"Running Collate Seq: `{' '.join(cmd_collate)}`")
+            run_cli_command(cmd_collate)
+            st.success("Sequence collation completed.")
+
+            collated_seq_path = find_collated_seq_file(tmpdir)
+            if not collated_seq_path:
+                st.error("Could not find the collated sequence wishlist file.")
+                return
+
+            cmd_order = [
+                "pyguide-order",
+                "--wishlist_file", collated_seq_path,
+                "--name", user_name,
+                "--ai", ai_status,
+                "--guides_per_gene", str(guides_per_gene),
+                "--order_format", "pooled-seq",
+                "--organism", organism,
+            ]
+
+            st.info(f"Running Order: `{' '.join(cmd_order)}`")
+            run_cli_command(cmd_order)
+            st.success("Done ordering (pooled-seq).")
 
         else:  # batch-retest
             if not wishlist_files:
@@ -295,6 +346,16 @@ def find_collated_file(directory: str) -> str:
     """
     for f in os.listdir(directory):
         if "collated_pooled_wish_list" in f and f.endswith(".txt"):
+            return os.path.join(directory, f)
+    return ""
+
+
+def find_collated_seq_file(directory: str) -> str:
+    """
+    Looks for 'collated_seq_wishlist_YY_MM_DD.txt' in 'directory'.
+    """
+    for f in os.listdir(directory):
+        if "collated_seq_wishlist" in f and f.endswith(".txt"):
             return os.path.join(directory, f)
     return ""
 
