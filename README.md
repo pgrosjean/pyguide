@@ -14,27 +14,37 @@
 ```bash
 git clone https://github.com/pgrosjean/pyguide.git
 cd pyguide
+```
+
+**CLI only** (lighter install — all four `pyguide-*` commands):
+```bash
 uv sync
 ```
 
-To install with development dependencies (for running tests):
+**Streamlit app** (includes the web UI):
+```bash
+uv sync --extra app
+```
+
+**Development** (CLI + tests):
 ```bash
 uv sync --extra dev
 ```
 
-> **Streamlit app**: Install streamlit separately if you want to use the web UI:
-> ```bash
-> uv pip install streamlit
-> ```
+**Everything** (CLI + app + tests):
+```bash
+uv sync --extra app --extra dev
+```
 
 # Usage (Streamlit App)
 
 ## Using the Streamlit App
+
 ```bash
-cd pyguide
-streamlit run app.py
+uv run streamlit run pyguide/app.py
 ```
-Wishlist files are .txt files with either Gene Symbols (e.g. APOE) or sgRNA names (e.g. BIRC7_+_61867189.23-P1P2) from the libraries found in /data/
+
+The app supports all order formats available from the CLI. Wishlist files are `.txt` files containing either Gene Symbols (e.g. `APOE`) or sgRNA names (e.g. `BIRC7_+_61867189.23-P1P2`) from the libraries in `/data/`. For the **pooled-seq** format, upload tab-delimited sequence files (`name<TAB>20nt spacer`) instead.
 
 
 # Usage (CLI)
