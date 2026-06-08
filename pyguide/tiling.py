@@ -223,5 +223,14 @@ def greedy_hamming_select(
     return result
 
 
+def write_sequence_file(df: pd.DataFrame, output_path: str) -> None:
+    """Write tab-delimited name<TAB>sequence file. Names encode chrom:position_strand."""
+    with open(output_path, 'w') as f:
+        for _, row in df.iterrows():
+            strand_label = 'fwd' if row['match_strand'] == '+' else 'rev'
+            name = f"{row['match_chrm']}:{row['match_position']}_{strand_label}"
+            f.write(f"{name}\t{row['sequence']}\n")
+
+
 def main(raw_args=None):
     pass

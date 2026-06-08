@@ -1,3 +1,4 @@
+import os
 import shutil
 
 import pytest
@@ -12,6 +13,7 @@ from pyguide.tiling import (
     apply_filters,
     hamming_distance,
     greedy_hamming_select,
+    write_sequence_file,
 )
 
 
@@ -230,3 +232,37 @@ def test_greedy_hamming_select_cap_larger_than_available():
     df = _make_guide_df(seqs, specificities=[0.9, 0.8])
     result = greedy_hamming_select(df, min_hamming=4, guides_per_region=10)
     assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# Task 7: write_sequence_file
+# ---------------------------------------------------------------------------
+
+def test_write_sequence_file_format(tmp_path):
+    df = pd.DataFrame({
+        'sequence': ['ACGTACGTACGTACGTACGT', 'TGCATGCATGCATGCATGCA'],
+        'match_chrm': ['chr1', 'chr1'],
+        'match_position': [12350, 12370],
+        'match_strand': ['+', '-'],
+        'specificity': [0.9, 0.8],
+    })
+    out = str(tmp_path / "out.txt")
+    write_sequence_file(df, out)
+    lines = open(out).read().strip().split('\n')
+    assert len(lines) == 2
+    parts0 = lines[0].split('\t')
+    assert len(parts0) == 2
+    assert parts0[0] == 'chr1:12350_fwd'
+    assert parts0[1] == 'ACGTACGTACGTACGTACGT'
+    parts1 = lines[1].split('\t')
+    assert parts1[0] == 'chr1:12370_rev'
+    assert parts1[1] == 'TGCATGCATGCATGCATGCA'
+
+
+def test_write_sequence_file_empty(tmp_path):
+    df = pd.DataFrame(columns=['sequence', 'match_chrm', 'match_position', 'match_strand'])
+    out = str(tmp_path / "out.txt")
+    write_sequence_file(df, out)
+    assert open(out).read() == ""
+
+
