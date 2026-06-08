@@ -9,6 +9,7 @@ from pyguide.tiling import (
     fetch_sequence_ucsc,
     find_ngg_guides,
     run_guidescan,
+    apply_filters,
 )
 
 
@@ -108,3 +109,52 @@ def test_run_guidescan_returns_dataframe():
     assert 'specificity' in df.columns
     assert len(df) == 1
     assert df.iloc[0]['specificity'] == pytest.approx(0.85)
+
+
+def _make_guide_df(sequences, specificities=None):
+    if specificities is None:
+        specificities = [0.9] * len(sequences)
+    return pd.DataFrame({
+        'sequence': sequences,
+        'match_chrm': ['chr1'] * len(sequences),
+        'match_position': list(range(len(sequences))),
+        'match_strand': ['+'] * len(sequences),
+        'specificity': specificities,
+    })
+
+
+def test_apply_filters_removes_tttt():
+    df = _make_guide_df(['ACGTTTTTACGTACGTACGT', 'ACGTACGTACGTACGTACGT'])
+    result = apply_filters(df, specificity_thresh=0.2)
+    assert len(result) == 1
+    assert result.iloc[0]['sequence'] == 'ACGTACGTACGTACGTACGT'
+
+
+def test_apply_filters_removes_bstxi():
+    df = _make_guide_df(['CCACCTTGTTGACGTACGTA', 'ACGTACGTACGTACGTACGT'])
+    result = apply_filters(df, specificity_thresh=0.2)
+    assert len(result) == 1
+    assert result.iloc[0]['sequence'] == 'ACGTACGTACGTACGTACGT'
+
+
+def test_apply_filters_removes_bpi1102i():
+    df = _make_guide_df(['GTTTAAGAGCTAAGCTGGAC', 'ACGTACGTACGTACGTACGT'])
+    result = apply_filters(df, specificity_thresh=0.2)
+    assert len(result) == 1
+    assert result.iloc[0]['sequence'] == 'ACGTACGTACGTACGTACGT'
+
+
+def test_apply_filters_removes_low_specificity():
+    df = _make_guide_df(
+        ['ACGTACGTACGTACGTACGT', 'TGCATGCATGCATGCATGCA'],
+        specificities=[0.1, 0.9],
+    )
+    result = apply_filters(df, specificity_thresh=0.2)
+    assert len(result) == 1
+    assert result.iloc[0]['sequence'] == 'TGCATGCATGCATGCATGCA'
+
+
+def test_apply_filters_removes_nan_specificity():
+    df = _make_guide_df(['ACGTACGTACGTACGTACGT'], specificities=[float('nan')])
+    result = apply_filters(df, specificity_thresh=0.2)
+    assert len(result) == 0

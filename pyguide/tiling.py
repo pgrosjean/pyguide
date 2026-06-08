@@ -163,5 +163,21 @@ def run_guidescan(guides: list[dict], index_path: str) -> pd.DataFrame:
     return guides_df
 
 
+_BSTXI = "CCACCTTGTTG"
+_BPI1102I = "GTTTAAGAGCTAAGCTGG"
+
+
+def apply_filters(df: pd.DataFrame, specificity_thresh: float) -> pd.DataFrame:
+    """Apply all sequence and specificity filters. Returns filtered DataFrame."""
+    mask = (
+        ~df['sequence'].str.contains('TTTT', na=False)
+        & ~df['sequence'].str.contains(_BSTXI, na=False)
+        & ~df['sequence'].str.contains(_BPI1102I, na=False)
+        & df['specificity'].notna()
+        & (df['specificity'] > specificity_thresh)
+    )
+    return df[mask].reset_index(drop=True)
+
+
 def main(raw_args=None):
     pass
