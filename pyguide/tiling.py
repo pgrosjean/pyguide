@@ -179,5 +179,49 @@ def apply_filters(df: pd.DataFrame, specificity_thresh: float) -> pd.DataFrame:
     return df[mask].reset_index(drop=True)
 
 
+def hamming_distance(s1: str, s2: str) -> int:
+    return sum(c1 != c2 for c1, c2 in zip(s1, s2))
+
+
+def greedy_hamming_select(
+    df: pd.DataFrame,
+    min_hamming: int,
+    guides_per_region: Optional[int],
+) -> pd.DataFrame:
+    """
+    Greedily select guides sorted by descending specificity such that
+    no two selected guides have pairwise Hamming distance <= min_hamming.
+
+    If guides_per_region is set, subsample the selected guides at evenly
+    spaced genomic positions (maximizes tiling coverage).
+    """
+    if df.empty:
+        return df
+
+    df_sorted = df.sort_values('specificity', ascending=False).reset_index(drop=True)
+    selected_rows = []
+    selected_seqs = []
+
+    for _, row in df_sorted.iterrows():
+        seq = row['sequence']
+        if all(hamming_distance(seq, s) > min_hamming for s in selected_seqs):
+            selected_rows.append(row)
+            selected_seqs.append(seq)
+
+    if not selected_rows:
+        return df.iloc[0:0]  # empty with same columns
+
+    result = pd.DataFrame(selected_rows).reset_index(drop=True)
+
+    if guides_per_region is not None and len(result) > guides_per_region:
+        result_by_pos = result.sort_values('match_position').reset_index(drop=True)
+        n = len(result_by_pos)
+        N = guides_per_region
+        indices = [round(i * (n - 1) / (N - 1)) for i in range(N)]
+        result = result_by_pos.iloc[indices].reset_index(drop=True)
+
+    return result
+
+
 def main(raw_args=None):
     pass

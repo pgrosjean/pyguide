@@ -10,6 +10,8 @@ from pyguide.tiling import (
     find_ngg_guides,
     run_guidescan,
     apply_filters,
+    hamming_distance,
+    greedy_hamming_select,
 )
 
 
@@ -158,3 +160,73 @@ def test_apply_filters_removes_nan_specificity():
     df = _make_guide_df(['ACGTACGTACGTACGTACGT'], specificities=[float('nan')])
     result = apply_filters(df, specificity_thresh=0.2)
     assert len(result) == 0
+
+
+def test_hamming_distance_identical():
+    assert hamming_distance("ACGT", "ACGT") == 0
+
+
+def test_hamming_distance_all_different():
+    assert hamming_distance("AAAA", "TTTT") == 4
+
+
+def test_hamming_distance_one_mismatch():
+    assert hamming_distance("ACGT", "ACGG") == 1
+
+
+def test_greedy_hamming_select_no_pair_within_threshold():
+    seqs = [
+        'AAAAAAAAAAAAAAAAAAAA',  # specificity 0.9
+        'AAAAAAAAAAAAAAAACCCC',  # hamming 4 from above — should be EXCLUDED (not > 4)
+        'TTTTTTTTTTTTTTTTTTTT',  # hamming 20 from first — INCLUDED
+    ]
+    df = _make_guide_df(seqs, specificities=[0.9, 0.8, 0.7])
+    result = greedy_hamming_select(df, min_hamming=4, guides_per_region=None)
+    seqs_out = list(result['sequence'])
+    for i in range(len(seqs_out)):
+        for j in range(i + 1, len(seqs_out)):
+            assert hamming_distance(seqs_out[i], seqs_out[j]) > 4, \
+                f"Pair {i},{j} has hamming <= 4"
+
+
+def test_greedy_hamming_select_priority():
+    seqs = [
+        'AAAAAAAAAAAAAAAAAAAA',  # specificity 0.5 — lower
+        'TTTTTTTTTTTTTTTTTTTT',  # specificity 0.9 — highest
+    ]
+    df = _make_guide_df(seqs, specificities=[0.5, 0.9])
+    result = greedy_hamming_select(df, min_hamming=4, guides_per_region=None)
+    assert 'TTTTTTTTTTTTTTTTTTTT' in list(result['sequence'])
+
+
+def test_greedy_hamming_select_cap_even_spread():
+    # 6 guides — all pairwise hamming > 4
+    seqs = [
+        'AAAAAAAAAAAAAAAAAAAA',
+        'TTTTTTTTTTTTTTTTTTTT',
+        'GGGGGGGGGGGGGGGGGGGG',
+        'CCCCCCCCCCCCCCCCCCCC',
+        'ACACACACACACACACACAC',
+        'TGTGTGTGTGTGTGTGTGTG',
+    ]
+    positions = [0, 10, 20, 30, 40, 50]
+    specificities = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4]
+    df = pd.DataFrame({
+        'sequence': seqs,
+        'match_chrm': ['chr1'] * 6,
+        'match_position': positions,
+        'match_strand': ['+'] * 6,
+        'specificity': specificities,
+    })
+    result = greedy_hamming_select(df, min_hamming=4, guides_per_region=3)
+    assert len(result) == 3
+    pos_out = sorted(result['match_position'].tolist())
+    assert pos_out[0] == 0
+    assert pos_out[-1] == 50
+
+
+def test_greedy_hamming_select_cap_larger_than_available():
+    seqs = ['AAAAAAAAAAAAAAAAAAAA', 'TTTTTTTTTTTTTTTTTTTT']
+    df = _make_guide_df(seqs, specificities=[0.9, 0.8])
+    result = greedy_hamming_select(df, min_hamming=4, guides_per_region=10)
+    assert len(result) == 2
