@@ -687,6 +687,16 @@ wheels = [
 ]
 
 [[package]]
+name = "pybigwig"
+version = "0.3.25"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/f4/672930ad51bbc135f51cac89577155f1d0c2d120375fc77978d3aa071bb7/pybigwig-0.3.25.tar.gz", hash = "sha256:8c717b0222e6677956fd659c8a21650983679ffb3314427d7f68d2910fad202a", size = 75287, upload-time = "2026-01-14T15:00:01.986Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/f6/51d8a97116de23c9280c1fa3b813bc088f8571ce5936ba84af1ecf13ed45/pybigwig-0.3.25-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:852c41f00afc610322eb3c5aba74068d05b340d09db4573db2deca330ad48f30", size = 187030, upload-time = "2026-01-14T15:00:05.322Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/e6/01ada46425bd120b36e7c2f6fe74a980de6912d416f07c9c85b22fadd515/pybigwig-0.3.25-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ba907b069ad498647661cc376ba79438728a321afb61a9eca333d60ca9c6d9a6", size = 186996, upload-time = "2026-01-14T15:00:06.704Z" },
+]
+
+[[package]]
 name = "pydeck"
 version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
@@ -725,16 +735,20 @@ app = [
 dev = [
     { name = "pytest" },
 ]
+tiling = [
+    { name = "pybigwig" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "mygene", specifier = ">=3.2.2" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.0.0" },
+    { name = "pybigwig", marker = "extra == 'tiling'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "streamlit", marker = "extra == 'app'" },
 ]
-provides-extras = ["dev", "app"]
+provides-extras = ["dev", "app", "tiling"]
 
 [[package]]
 name = "pytest"
