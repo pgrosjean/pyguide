@@ -91,5 +91,77 @@ def find_ngg_guides(chrom: str, start: int, sequence: str) -> list[dict]:
     return guides
 
 
+def run_guidescan(guides: list[dict], index_path: str) -> pd.DataFrame:
+    """
+    Run guidescan enumerate on a list of guide dicts and return a DataFrame
+    with all guide fields plus a 'specificity' column.
+
+    guides: list of dicts with keys: sequence, match_chrm, match_position, match_strand
+    index_path: path to the GuideScan2 hg38 index file
+    """
+    if shutil.which("guidescan") is None:
+        raise RuntimeError(
+            "guidescan not found on PATH. Install GuideScan2 (e.g. via Conda: "
+            "`conda install -c bioconda guidescan2`) and ensure it is on your PATH. "
+            "See README for full setup instructions."
+        )
+
+    if not guides:
+        return pd.DataFrame(columns=[
+            'sequence', 'match_chrm', 'match_position', 'match_strand', 'specificity'
+        ])
+
+    guides_df = pd.DataFrame(guides)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        kmers_file = os.path.join(tmpdir, "kmers.txt")
+        output_file = os.path.join(tmpdir, "output.csv")
+
+        # Write one 20nt spacer per line
+        with open(kmers_file, 'w') as f:
+            for seq in guides_df['sequence']:
+                f.write(seq + '\n')
+
+        result = subprocess.run(
+            [
+                "guidescan", "enumerate",
+                "--index", index_path,
+                "--kmers-file", kmers_file,
+                "--format", "csv",
+                "--output", output_file,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"guidescan enumerate failed:\n{result.stderr}"
+            )
+
+        if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
+            # No guides found in index — return guides with NaN specificity
+            guides_df['specificity'] = float('nan')
+            return guides_df
+
+        gs_df = pd.read_csv(output_file)
+
+    # GuideScan2 may return multiple rows per guide (one per match).
+    # Take the first specificity value per unique sequence (it's an aggregate property).
+    if 'specificity' not in gs_df.columns:
+        guides_df['specificity'] = float('nan')
+        return guides_df
+
+    spec_map = (
+        gs_df.dropna(subset=['specificity'])
+             .groupby('sequence')['specificity']
+             .first()
+             .to_dict()
+    )
+
+    guides_df['specificity'] = guides_df['sequence'].map(spec_map)
+    return guides_df
+
+
 def main(raw_args=None):
     pass

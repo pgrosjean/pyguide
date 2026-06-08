@@ -1,10 +1,14 @@
+import shutil
+
 import pytest
 import pandas as pd
+from unittest.mock import patch, MagicMock
 from pyguide.tiling import (
     parse_coordinates,
     reverse_complement,
     fetch_sequence_ucsc,
     find_ngg_guides,
+    run_guidescan,
 )
 
 
@@ -65,3 +69,42 @@ def test_find_ngg_guides_excludes_n():
     seq = "ACGTACGTACGTACGNACGTAGG"
     guides = find_ngg_guides("chr1", 1, seq)
     assert not any('N' in g['sequence'] for g in guides)
+
+
+def test_run_guidescan_missing_binary():
+    guides = [
+        {'sequence': 'ACGTACGTACGTACGTACGT', 'match_chrm': 'chr1',
+         'match_position': 100, 'match_strand': '+'},
+    ]
+    with patch('shutil.which', return_value=None):
+        with pytest.raises(RuntimeError, match="guidescan.*not found"):
+            run_guidescan(guides, index_path="/fake/index")
+
+
+def test_run_guidescan_returns_dataframe():
+    """run_guidescan merges specificity from CSV onto guide list."""
+    guides = [
+        {'sequence': 'ACGTACGTACGTACGTACGT', 'match_chrm': 'chr1',
+         'match_position': 100, 'match_strand': '+'},
+    ]
+    fake_csv = (
+        "id,sequence,match_chrm,match_position,match_strand,match_distance,specificity\n"
+        "guide_0,ACGTACGTACGTACGTACGT,chr1,99,+,0,0.85\n"
+    )
+
+    def fake_subprocess(cmd, **kwargs):
+        # Write what guidescan would write to --output
+        out_idx = cmd.index('--output')
+        with open(cmd[out_idx + 1], 'w') as f:
+            f.write(fake_csv)
+        m = MagicMock()
+        m.returncode = 0
+        m.stderr = ''
+        return m
+
+    with patch('shutil.which', return_value='/usr/bin/guidescan'):
+        with patch('subprocess.run', side_effect=fake_subprocess):
+            df = run_guidescan(guides, index_path="/fake/index")
+    assert 'specificity' in df.columns
+    assert len(df) == 1
+    assert df.iloc[0]['specificity'] == pytest.approx(0.85)
