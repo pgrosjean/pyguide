@@ -232,5 +232,59 @@ def write_sequence_file(df: pd.DataFrame, output_path: str) -> None:
             f.write(f"{name}\t{row['sequence']}\n")
 
 
+def write_bigwig(df: pd.DataFrame, output_path: str, chrom_sizes_path: str) -> None:
+    """
+    Write a BigWig coverage file. Each guide's 20nt spacer contributes 1 per base.
+    Requires pyBigWig: uv sync --extra tiling
+    """
+    try:
+        import pyBigWig
+    except ImportError:
+        raise ImportError(
+            "pyBigWig is required for BigWig output. "
+            "Install it with: uv sync --extra tiling"
+        )
+
+    # Load chrom sizes
+    chrom_sizes = {}
+    with open(chrom_sizes_path) as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) == 2:
+                chrom_sizes[parts[0]] = int(parts[1])
+
+    # Accumulate coverage per chromosome
+    from collections import defaultdict
+    coverage: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+
+    for _, row in df.iterrows():
+        chrom = row['match_chrm']
+        pos = int(row['match_position'])  # 1-based
+        start_0 = pos - 1  # convert to 0-based
+        chrom_len = chrom_sizes.get(chrom, 0)
+        for base in range(start_0, min(start_0 + 20, chrom_len)):
+            coverage[chrom][base] += 1
+
+    bw = pyBigWig.open(output_path, 'w')
+    # BigWig header must list all chroms that will appear
+    present_chroms = [(c, chrom_sizes[c]) for c in chrom_sizes if c in coverage]
+    bw.addHeader(present_chroms)
+
+    for chrom, pos_dict in sorted(coverage.items()):
+        positions = sorted(pos_dict.keys())
+        starts = positions
+        ends = [p + 1 for p in positions]
+        values = [float(pos_dict[p]) for p in positions]
+        bw.addEntries(
+            [chrom] * len(starts),
+            starts,
+            ends=ends,
+            values=values,
+        )
+
+    bw.close()
+    print(f"BigWig written: {output_path}")
+
+
 def main(raw_args=None):
     pass

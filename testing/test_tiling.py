@@ -14,6 +14,7 @@ from pyguide.tiling import (
     hamming_distance,
     greedy_hamming_select,
     write_sequence_file,
+    write_bigwig,
 )
 
 
@@ -264,5 +265,53 @@ def test_write_sequence_file_empty(tmp_path):
     out = str(tmp_path / "out.txt")
     write_sequence_file(df, out)
     assert open(out).read() == ""
+
+
+# ---------------------------------------------------------------------------
+# Task 8: write_bigwig
+# ---------------------------------------------------------------------------
+
+def test_write_bigwig_missing_pybigwig(tmp_path):
+    df = pd.DataFrame({
+        'sequence': ['ACGTACGTACGTACGTACGT'],
+        'match_chrm': ['chr1'],
+        'match_position': [12350],
+        'match_strand': ['+'],
+        'specificity': [0.9],
+    })
+    chrom_sizes = str(tmp_path / "chrom.sizes")
+    with open(chrom_sizes, 'w') as f:
+        f.write("chr1\t248956422\n")
+    out = str(tmp_path / "out.bw")
+
+    with patch.dict('sys.modules', {'pyBigWig': None}):
+        with pytest.raises(ImportError, match="uv sync --extra tiling"):
+            write_bigwig(df, out, chrom_sizes)
+
+
+def test_write_bigwig_creates_file(tmp_path):
+    """Only runs if pyBigWig is installed; skips otherwise."""
+    pytest.importorskip("pyBigWig")
+    import pyBigWig
+
+    df = pd.DataFrame({
+        'sequence': ['ACGTACGTACGTACGTACGT'],
+        'match_chrm': ['chr1'],
+        'match_position': [100],  # 1-based
+        'match_strand': ['+'],
+        'specificity': [0.9],
+    })
+    chrom_sizes = str(tmp_path / "chrom.sizes")
+    with open(chrom_sizes, 'w') as f:
+        f.write("chr1\t248956422\n")
+    out = str(tmp_path / "out.bw")
+    write_bigwig(df, out, chrom_sizes)
+    assert os.path.exists(out)
+
+    bw = pyBigWig.open(out)
+    # Guide at 1-based position 100 covers 0-based positions 99..118
+    vals = bw.values("chr1", 99, 119)
+    bw.close()
+    assert all(v == 1.0 for v in vals)
 
 
