@@ -36,6 +36,11 @@ uv sync --extra dev
 uv sync --extra app --extra dev
 ```
 
+**Tiling library + BigWig output** (includes pyBigWig for genome browser tracks):
+```bash
+uv sync --extra tiling
+```
+
 # Usage (Streamlit App)
 
 ## Using the Streamlit App
@@ -339,4 +344,92 @@ pyguide-order --wishlist_file /path/to/batch_retest_generated_wishlist_file --na
 
 ### pyguide-check-seq outputs
 Upon running pyguide-check-seq a text file will be generated with two tab seperated columns, the first column with the .seq file name and the second column with the corresponding guide. If a .seq file does not correspond to a guide then it will not be returned in the text file.
+
+## Genomic Tiling Library Usage
+
+### Prerequisites
+
+**GuideScan2** must be installed separately (not available on PyPI):
+```bash
+conda install -c bioconda guidescan2
+```
+
+**hg38 GuideScan2 index** (~2.2 GB) — download with the provided script:
+```bash
+bash scripts/download_guidescan_data.sh
+# Default saves to ~/.pyguide_data/
+# Use --data-dir to choose a custom location
+```
+
+**BigWig output** (optional) — install pyBigWig:
+```bash
+uv sync --extra tiling
+```
+
+### Flags for pyguide-tiling
+
+**Required (one of):**
+- **--coordinates**: Single coordinate region, e.g. `chr1:12345-12395` (1-based, closed)
+- **--coordinates_file**: Path to a file with one coordinate region per line
+
+**Required:**
+- **--index**: Path to the GuideScan2 hg38 index file downloaded above
+- **--output**: Path for the output tab-delimited sequence file
+
+**Optional:**
+- **--specificity**: Minimum GuideScan2 specificity score (default: 0.2)
+- **--hamming**: Minimum pairwise Hamming distance between any two selected guides (default: 4)
+- **--guides_per_region**: Maximum number of guides per region, evenly spread across positions
+- **--bigwig**: Also write a BigWig coverage track (`.bw` file). Requires `uv sync --extra tiling`.
+
+### Example use cases
+
+**(1) Tile a single promoter region:**
+```bash
+pyguide-tiling \
+  --index ~/.pyguide_data/hg38.index \
+  --coordinates chr1:12345-12595 \
+  --output tiling_guides.txt
+```
+
+**(2) Tile multiple regions from a file:**
+```bash
+# regions.txt contains one region per line:
+# chr1:12345-12595
+# chr7:117548601-117548801
+
+pyguide-tiling \
+  --index ~/.pyguide_data/hg38.index \
+  --coordinates_file regions.txt \
+  --output tiling_guides.txt \
+  --guides_per_region 20
+```
+
+**(3) Tile with BigWig coverage output:**
+```bash
+pyguide-tiling \
+  --index ~/.pyguide_data/hg38.index \
+  --coordinates chr7:117548601-117548801 \
+  --output tiling_guides.txt \
+  --bigwig
+# Produces: tiling_guides.txt and tiling_guides.bw
+```
+
+### pyguide-tiling output
+
+A tab-delimited file with two columns: `name<TAB>20nt_spacer`. Guide names encode genomic position and strand (e.g. `chr1:12350_fwd`, `chr1:12370_rev`).
+
+This file feeds directly into the pooled-seq ordering pipeline:
+```bash
+# Step 1: generate tiling guides
+pyguide-tiling --index ~/.pyguide_data/hg38.index \
+  --coordinates chr1:12345-12595 --output tiling_guides.txt
+
+# Step 2: collate (assigns library primers)
+pyguide-collate-seq --sequence_files tiling_guides.txt
+
+# Step 3: order the pooled oligo library
+pyguide-order --wishlist_file collated_seq_wishlist_YY_MM_DD.txt \
+  --name Name --ai i --guides_per_gene 1 --order_format pooled-seq
+```
 

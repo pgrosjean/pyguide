@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 app = ["streamlit"]
+tiling = ["pyBigWig"]
 
 [project.scripts]
 pyguide-order = "pyguide.guide:main"
@@ -27,6 +28,7 @@ pyguide-collate = "pyguide.pool:main"
 pyguide-collate-seq = "pyguide.collate_seq:main"
 pyguide-batch-retest = "pyguide.batch_retest:main"
 pyguide-check-seq = "pyguide.check_seq:main"
+pyguide-tiling = "pyguide.tiling:main"
 
 [project.urls]
 Homepage = "https://github.com/pgrosjean/pyguide"
