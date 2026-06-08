@@ -286,5 +286,104 @@ def write_bigwig(df: pd.DataFrame, output_path: str, chrom_sizes_path: str) -> N
     print(f"BigWig written: {output_path}")
 
 
-def main(raw_args=None):
-    pass
+def main(raw_args=None) -> None:
+    parser = ArgumentParser(
+        description="Generate a tiling gRNA library from chromosomal coordinates using GuideScan2."
+    )
+
+    coord_group = parser.add_mutually_exclusive_group(required=True)
+    coord_group.add_argument(
+        "--coordinates",
+        type=str,
+        help="Single coordinate region, e.g. chr1:12345-12395 (1-based, closed).",
+    )
+    coord_group.add_argument(
+        "--coordinates_file",
+        type=str,
+        help="File with one coordinate region per line.",
+    )
+
+    parser.add_argument("--index", type=str, required=True,
+                        help="Path to GuideScan2 hg38 index file.")
+    parser.add_argument("--output", type=str, required=True,
+                        help="Output tab-delimited sequence file (name<TAB>sequence).")
+    parser.add_argument("--specificity", type=float, default=0.2,
+                        help="Minimum GuideScan2 specificity score (default: 0.2).")
+    parser.add_argument("--hamming", type=int, default=4,
+                        help="Minimum pairwise Hamming distance between guides (default: 4).")
+    parser.add_argument("--guides_per_region", type=int, default=None,
+                        help="Max guides per region, evenly spread (optional).")
+    parser.add_argument("--bigwig", action="store_true",
+                        help="Also write a BigWig coverage file alongside --output.")
+
+    args = parser.parse_args(raw_args)
+
+    if not os.path.exists(args.index):
+        print(f"Error: index file not found: {args.index}", file=sys.stderr)
+        sys.exit(1)
+
+    # Collect coordinate strings
+    if args.coordinates:
+        coord_strings = [args.coordinates]
+    else:
+        with open(args.coordinates_file) as f:
+            coord_strings = [line.strip() for line in f if line.strip()]
+
+    all_guides: list[pd.DataFrame] = []
+
+    for coord_str in coord_strings:
+        try:
+            chrom, start, end = parse_coordinates(coord_str)
+        except ValueError as e:
+            print(f"Warning: skipping invalid coordinate '{coord_str}': {e}", file=sys.stderr)
+            continue
+
+        print(f"Processing {coord_str}...")
+
+        try:
+            sequence = fetch_sequence_ucsc(chrom, start, end)
+        except RuntimeError as e:
+            print(f"Warning: skipping {coord_str}: {e}", file=sys.stderr)
+            continue
+
+        raw_guides = find_ngg_guides(chrom, start, sequence)
+        if not raw_guides:
+            print(f"Warning: no NGG guides found in {coord_str}", file=sys.stderr)
+            continue
+
+        try:
+            guides_df = run_guidescan(raw_guides, args.index)
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        filtered = apply_filters(guides_df, specificity_thresh=args.specificity)
+        if filtered.empty:
+            print(f"Warning: no guides passed filters for {coord_str}", file=sys.stderr)
+            continue
+
+        selected = greedy_hamming_select(filtered, args.hamming, args.guides_per_region)
+        if selected.empty:
+            print(f"Warning: no guides survived Hamming selection for {coord_str}", file=sys.stderr)
+            continue
+
+        print(f"  {len(selected)} guides selected for {coord_str}")
+        all_guides.append(selected)
+
+    if not all_guides:
+        print("No guides selected for any region. Output file not written.", file=sys.stderr)
+        sys.exit(1)
+
+    combined = pd.concat(all_guides, ignore_index=True)
+    write_sequence_file(combined, args.output)
+    print(f"Sequence file written: {args.output}")
+
+    if args.bigwig:
+        bw_path = os.path.splitext(args.output)[0] + ".bw"
+        here = os.path.dirname(os.path.realpath(__file__))
+        chrom_sizes_path = os.path.join(here, '..', 'data', 'hg38.chrom.sizes')
+        write_bigwig(combined, bw_path, chrom_sizes_path)
+
+
+if __name__ == "__main__":
+    main()

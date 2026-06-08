@@ -16,6 +16,7 @@ from pyguide.tiling import (
     write_sequence_file,
     write_bigwig,
 )
+from pyguide.tiling import main as tiling_main
 
 
 def test_import_tiling():
@@ -313,5 +314,26 @@ def test_write_bigwig_creates_file(tmp_path):
     vals = bw.values("chr1", 99, 119)
     bw.close()
     assert all(v == 1.0 for v in vals)
+
+
+# ---------------------------------------------------------------------------
+# Task 9: main() CLI entry point
+# ---------------------------------------------------------------------------
+
+def test_main_requires_coordinates_or_file(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        tiling_main(["--index", "/fake/index", "--output", str(tmp_path / "out.txt")])
+
+
+def test_main_coordinates_and_file_mutually_exclusive(tmp_path, capsys):
+    coords_file = tmp_path / "coords.txt"
+    coords_file.write_text("chr1:12345-12395\n")
+    with pytest.raises(SystemExit):
+        tiling_main([
+            "--index", "/fake/index",
+            "--output", str(tmp_path / "out.txt"),
+            "--coordinates", "chr1:12345-12395",
+            "--coordinates_file", str(coords_file),
+        ])
 
 
